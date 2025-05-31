@@ -15,11 +15,12 @@ import {
   ArrowLeft, 
   ArrowRight,
   Flag,
-  X
+  X,
+  Home
 } from 'lucide-react';
 
 const ExamInterface: React.FC = () => {
-  const { currentExam, currentAttempt, submitAnswer, submitExam, addWarning } = useExam();
+  const { currentExam, currentAttempt, submitAnswer, submitExam, addWarning, setCurrentExam, setCurrentAttempt } = useExam();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
@@ -30,6 +31,11 @@ const ExamInterface: React.FC = () => {
   const [examClosed, setExamClosed] = useState(false);
   const [warningMessage, setWarningMessage] = useState('');
   const MAX_WARNINGS = 3;
+
+  const handleReturnHome = () => {
+    setCurrentExam(null);
+    setCurrentAttempt(null);
+  };
 
   // Security monitoring
   useEffect(() => {
@@ -194,15 +200,21 @@ const ExamInterface: React.FC = () => {
         <Card className="w-96">
           <CardContent className="p-6 text-center">
             <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Exam Submitted</h3>
-            <p className="text-gray-600">Your exam has been submitted successfully. Please wait for the teacher to review and announce your score.</p>
+            <h3 className="text-lg font-semibold mb-2">Exam Submitted Successfully!</h3>
+            <p className="text-gray-600 mb-4">
+              Your exam has been submitted successfully. Please wait for the teacher to review and announce your score.
+            </p>
             {warnings.length > 0 && (
-              <div className="mt-4 p-4 bg-orange-50 rounded-lg">
+              <div className="mb-4 p-4 bg-orange-50 rounded-lg">
                 <p className="text-sm text-orange-700">
                   Total warnings received: {warnings.length}
                 </p>
               </div>
             )}
+            <Button onClick={handleReturnHome} className="w-full">
+              <Home className="w-4 h-4 mr-2" />
+              Return to Dashboard
+            </Button>
           </CardContent>
         </Card>
       </div>
