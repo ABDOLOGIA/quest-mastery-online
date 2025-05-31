@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useExam } from '../../contexts/ExamContext';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
@@ -16,31 +15,34 @@ import {
   ArrowLeft, 
   ArrowRight,
   Flag,
-  Eye,
-  EyeOff
+  X
 } from 'lucide-react';
 
 const ExamInterface: React.FC = () => {
-  const { currentExam, currentAttempt, submitAnswer, submitExam } = useExam();
+  const { currentExam, currentAttempt, submitAnswer, submitExam, addWarning } = useExam();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<string>>(new Set());
   const [isExamSubmitted, setIsExamSubmitted] = useState(false);
-  const [tabSwitchWarnings, setTabSwitchWarnings] = useState(0);
+  const [warnings, setWarnings] = useState<Array<{type: string, message: string, timestamp: Date}>>([]);
   const [showSecurityWarning, setShowSecurityWarning] = useState(false);
+  const [examClosed, setExamClosed] = useState(false);
+  const [warningMessage, setWarningMessage] = useState('');
+  const MAX_WARNINGS = 3;
 
   // Security monitoring
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.hidden && !isExamSubmitted) {
-        setTabSwitchWarnings(prev => prev + 1);
-        setShowSecurityWarning(true);
-        setTimeout(() => setShowSecurityWarning(false), 5000);
-        
-        if (tabSwitchWarnings >= 2) {
-          alert('Multiple tab switches detected. This exam will be flagged for review.');
-        }
+      if (document.hidden && !isExamSubmitted && !examClosed) {
+        addWarningToSystem('Tab Switch', 'Student switched tabs during exam');
+      }
+    };
+
+    const handleCopy = (e: ClipboardEvent) => {
+      if (!isExamSubmitted && !examClosed) {
+        e.preventDefault();
+        addWarningToSystem('Copy Attempt', 'Student attempted to copy content during exam');
       }
     };
 
@@ -52,24 +54,57 @@ const ExamInterface: React.FC = () => {
       if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
         e.preventDefault();
       }
+      // Detect copy attempts with Ctrl+C
+      if (e.ctrlKey && e.key === 'c' && !isExamSubmitted && !examClosed) {
+        addWarningToSystem('Copy Attempt', 'Student attempted to copy with Ctrl+C');
+      }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('copy', handleCopy);
     document.addEventListener('contextmenu', handleContextMenu);
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener('copy', handleCopy);
       document.removeEventListener('contextmenu', handleContextMenu);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [tabSwitchWarnings, isExamSubmitted]);
+  }, [isExamSubmitted, examClosed]);
+
+  const addWarningToSystem = (type: string, message: string) => {
+    const newWarning = { type, message, timestamp: new Date() };
+    setWarnings(prev => [...prev, newWarning]);
+    setWarningMessage(message);
+    setShowSecurityWarning(true);
+    
+    // Hide warning after 5 seconds
+    setTimeout(() => {
+      setShowSecurityWarning(false);
+      setWarningMessage('');
+    }, 5000);
+
+    // Check if max warnings reached
+    if (warnings.length + 1 >= MAX_WARNINGS) {
+      setExamClosed(true);
+      setWarningMessage('Exam terminated due to multiple security violations');
+      setTimeout(() => {
+        handleSubmitExam();
+      }, 2000);
+    }
+
+    // Add warning to exam context
+    if (addWarning) {
+      addWarning(currentAttempt?.id || '', newWarning);
+    }
+  };
 
   // Timer
   useEffect(() => {
-    if (!currentExam || !currentAttempt || isExamSubmitted) return;
+    if (!currentExam || !currentAttempt || isExamSubmitted || examClosed) return;
 
-    const examDuration = currentExam.duration * 60; // Convert to seconds
+    const examDuration = currentExam.duration * 60;
     const startTime = new Date(currentAttempt.startTime).getTime();
     
     const timer = setInterval(() => {
@@ -85,7 +120,7 @@ const ExamInterface: React.FC = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [currentExam, currentAttempt, isExamSubmitted]);
+  }, [currentExam, currentAttempt, isExamSubmitted, examClosed]);
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -134,6 +169,25 @@ const ExamInterface: React.FC = () => {
     );
   }
 
+  if (examClosed) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="w-96">
+          <CardContent className="p-6 text-center">
+            <X className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2 text-red-800">Exam Terminated</h3>
+            <p className="text-red-600">Your exam has been terminated due to multiple security violations.</p>
+            <div className="mt-4 p-4 bg-red-50 rounded-lg">
+              <p className="text-sm text-red-700">
+                Total warnings: {warnings.length}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (isExamSubmitted) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -141,11 +195,11 @@ const ExamInterface: React.FC = () => {
           <CardContent className="p-6 text-center">
             <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">Exam Submitted</h3>
-            <p className="text-gray-600">Your exam has been submitted successfully.</p>
-            {currentAttempt.score !== undefined && (
-              <div className="mt-4 p-4 bg-green-50 rounded-lg">
-                <p className="text-lg font-bold text-green-800">
-                  Score: {currentAttempt.score}/{currentExam.totalPoints}
+            <p className="text-gray-600">Your exam has been submitted successfully. Please wait for the teacher to review and announce your score.</p>
+            {warnings.length > 0 && (
+              <div className="mt-4 p-4 bg-orange-50 rounded-lg">
+                <p className="text-sm text-orange-700">
+                  Total warnings received: {warnings.length}
                 </p>
               </div>
             )}
@@ -162,12 +216,17 @@ const ExamInterface: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Security Warning Overlay */}
       {showSecurityWarning && (
-        <div className="security-overlay animate-fade-in">
+        <div className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-80 z-50 flex items-center justify-center">
           <Card className="w-96">
             <CardContent className="p-6 text-center">
               <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-red-800 mb-2">Security Warning</h3>
-              <p className="text-red-600">Tab switching detected! This activity is being monitored.</p>
+              <p className="text-red-600">{warningMessage}</p>
+              <div className="mt-4 p-2 bg-red-50 rounded">
+                <p className="text-sm text-red-700">
+                  Warnings: {warnings.length}/{MAX_WARNINGS}
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -184,15 +243,15 @@ const ExamInterface: React.FC = () => {
               </p>
             </div>
             <div className="flex items-center space-x-6">
-              {tabSwitchWarnings > 0 && (
+              {warnings.length > 0 && (
                 <div className="flex items-center text-red-600">
                   <AlertTriangle className="w-4 h-4 mr-1" />
-                  <span className="text-sm">Warnings: {tabSwitchWarnings}</span>
+                  <span className="text-sm">Warnings: {warnings.length}/{MAX_WARNINGS}</span>
                 </div>
               )}
               <div className="flex items-center space-x-2">
                 <Clock className={`w-5 h-5 ${timeRemaining < 300 ? 'text-red-500' : 'text-gray-500'}`} />
-                <span className={`exam-timer ${timeRemaining < 300 ? 'text-red-500 animate-pulse-warning' : 'text-gray-900'}`}>
+                <span className={`exam-timer ${timeRemaining < 300 ? 'text-red-500 animate-pulse' : 'text-gray-900'}`}>
                   {formatTime(timeRemaining)}
                 </span>
               </div>

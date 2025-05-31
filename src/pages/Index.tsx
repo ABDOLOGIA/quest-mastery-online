@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useExam } from '../contexts/ExamContext';
 import LoginForm from '../components/auth/LoginForm';
 import RegisterForm from '../components/auth/RegisterForm';
+import ForgotPassword from '../components/auth/ForgotPassword';
 import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
 import StudentDashboard from '../components/dashboard/StudentDashboard';
@@ -14,7 +15,7 @@ import ExamInterface from '../components/exam/ExamInterface';
 const Index = () => {
   const { user } = useAuth();
   const { currentExam } = useExam();
-  const [showRegister, setShowRegister] = useState(false);
+  const [authView, setAuthView] = useState<'login' | 'register' | 'forgot'>('login');
   const [activeSection, setActiveSection] = useState('dashboard');
 
   // Show exam interface if user is taking an exam
@@ -24,11 +25,27 @@ const Index = () => {
 
   // Show auth forms if not logged in
   if (!user) {
-    return showRegister ? (
-      <RegisterForm onSwitchToLogin={() => setShowRegister(false)} />
-    ) : (
-      <LoginForm onSwitchToRegister={() => setShowRegister(true)} />
-    );
+    switch (authView) {
+      case 'register':
+        return (
+          <RegisterForm 
+            onSwitchToLogin={() => setAuthView('login')} 
+          />
+        );
+      case 'forgot':
+        return (
+          <ForgotPassword 
+            onBackToLogin={() => setAuthView('login')} 
+          />
+        );
+      default:
+        return (
+          <LoginForm 
+            onSwitchToRegister={() => setAuthView('register')}
+            onForgotPassword={() => setAuthView('forgot')}
+          />
+        );
+    }
   }
 
   const renderMainContent = () => {
