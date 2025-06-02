@@ -235,7 +235,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
             <div className="space-y-3 text-yellow-100">
               <div className="flex items-start">
                 <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                <p className="text-sm">Study from <span className="text-yellow-300 font-semibold">2am to 6pm/month</span> to build strong foundations</p>
+                <p className="text-sm">Focuses on building <span className="text-yellow-300 font-semibold">strong students</span> who are able to face the world</p>
               </div>
               <div className="flex items-start">
                 <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
@@ -244,26 +244,22 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
             </div>
           </div>
 
-          {/* Join Academic Excellence */}
+          {/* Join your real world Excellence */}
           <div className="bg-black bg-opacity-60 backdrop-blur-lg border border-yellow-400 rounded-lg p-6">
             <div className="flex items-center mb-4">
               <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center mr-4">
                 <Users className="w-6 h-6 text-black" />
               </div>
-              <h3 className="text-xl font-bold text-yellow-300">JOIN ACADEMIC EXCELLENCE</h3>
+              <h3 className="text-xl font-bold text-yellow-300">JOIN YOUR REAL WORLD EXCELLENCE</h3>
             </div>
             <div className="space-y-3 text-yellow-100">
               <div className="flex items-start">
                 <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                <p className="text-sm">Collaborate <span className="text-yellow-300 font-semibold">with peers</span> who understand your journey</p>
+                <p className="text-sm">Put all your <span className="text-yellow-300 font-semibold">knowledge here</span></p>
               </div>
               <div className="flex items-start">
                 <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                <p className="text-sm">Make <span className="text-yellow-300 font-semibold">meaningful friends</span> on your journey</p>
-              </div>
-              <div className="flex items-start">
-                <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                <p className="text-sm">Network with <span className="text-yellow-300 font-semibold">10,000+</span> students</p>
+                <p className="text-sm">Study hard and <span className="text-yellow-300 font-semibold">pass all your exams</span></p>
               </div>
             </div>
           </div>
@@ -279,15 +275,11 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
             <div className="space-y-3 text-yellow-100">
               <div className="flex items-start">
                 <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                <p className="text-sm">Mentors on <span className="text-yellow-300 font-semibold">hyper-successful</span> careers in their field</p>
+                <p className="text-sm">In order to be successful you need to <span className="text-yellow-300 font-semibold">pass a lot of exams</span> in your life</p>
               </div>
               <div className="flex items-start">
                 <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                <p className="text-sm">Get <span className="text-yellow-300 font-semibold">1-on-1 advice</span> from industry experts</p>
-              </div>
-              <div className="flex items-start">
-                <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                <p className="text-sm">Talk to <span className="text-yellow-300 font-semibold">top industry</span> experts</p>
+                <p className="text-sm">Success means <span className="text-yellow-300 font-semibold">solving problems</span></p>
               </div>
             </div>
           </div>
@@ -296,7 +288,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
         {/* Call to Action */}
         <div className="text-center mt-8">
           <p className="text-yellow-100 text-lg mb-4">
-            That's exactly what you can do inside <span className="text-yellow-300 font-bold">THE REAL WORLD.</span>
+            That's exactly what you can do, join <span className="text-yellow-300 font-bold">YourExam.net</span> and solve your <span className="text-yellow-300 font-bold">PROBLEMS</span>
           </p>
         </div>
       </div>
