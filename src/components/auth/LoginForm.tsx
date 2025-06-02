@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
@@ -6,7 +5,7 @@ import { Input } from '../ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription } from '../ui/alert';
-import { GraduationCap, Mail, Lock, AlertCircle, RefreshCw } from 'lucide-react';
+import { GraduationCap, Mail, Lock, AlertCircle, RefreshCw, BookOpen, Target, Trophy, Users } from 'lucide-react';
 
 interface LoginFormProps {
   onSwitchToRegister: () => void;
@@ -83,7 +82,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-gray-900 to-black flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-gray-900 to-black flex flex-col items-center justify-center p-4 relative overflow-hidden">
       {/* Enhanced 3D Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         {/* Golden floating cubes */}
@@ -220,6 +219,86 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Features Section */}
+      <div className="w-full max-w-6xl mt-12 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-4">
+          {/* Master Essential Skills */}
+          <div className="bg-black bg-opacity-60 backdrop-blur-lg border border-yellow-400 rounded-lg p-6">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center mr-4">
+                <BookOpen className="w-6 h-6 text-black" />
+              </div>
+              <h3 className="text-xl font-bold text-yellow-300">MASTER ESSENTIAL SKILLS</h3>
+            </div>
+            <div className="space-y-3 text-yellow-100">
+              <div className="flex items-start">
+                <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                <p className="text-sm">Study from <span className="text-yellow-300 font-semibold">2am to 6pm/month</span> to build strong foundations</p>
+              </div>
+              <div className="flex items-start">
+                <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                <p className="text-sm">Master the skills you need to <span className="text-yellow-300 font-semibold">maximize your potential</span></p>
+              </div>
+            </div>
+          </div>
+
+          {/* Join Academic Excellence */}
+          <div className="bg-black bg-opacity-60 backdrop-blur-lg border border-yellow-400 rounded-lg p-6">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center mr-4">
+                <Users className="w-6 h-6 text-black" />
+              </div>
+              <h3 className="text-xl font-bold text-yellow-300">JOIN ACADEMIC EXCELLENCE</h3>
+            </div>
+            <div className="space-y-3 text-yellow-100">
+              <div className="flex items-start">
+                <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                <p className="text-sm">Collaborate <span className="text-yellow-300 font-semibold">with peers</span> who understand your journey</p>
+              </div>
+              <div className="flex items-start">
+                <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                <p className="text-sm">Make <span className="text-yellow-300 font-semibold">meaningful friends</span> on your journey</p>
+              </div>
+              <div className="flex items-start">
+                <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                <p className="text-sm">Network with <span className="text-yellow-300 font-semibold">10,000+</span> students</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Access to Success */}
+          <div className="bg-black bg-opacity-60 backdrop-blur-lg border border-yellow-400 rounded-lg p-6">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center mr-4">
+                <Trophy className="w-6 h-6 text-black" />
+              </div>
+              <h3 className="text-xl font-bold text-yellow-300">ACCESS TO SUCCESS</h3>
+            </div>
+            <div className="space-y-3 text-yellow-100">
+              <div className="flex items-start">
+                <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                <p className="text-sm">Mentors on <span className="text-yellow-300 font-semibold">hyper-successful</span> careers in their field</p>
+              </div>
+              <div className="flex items-start">
+                <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                <p className="text-sm">Get <span className="text-yellow-300 font-semibold">1-on-1 advice</span> from industry experts</p>
+              </div>
+              <div className="flex items-start">
+                <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                <p className="text-sm">Talk to <span className="text-yellow-300 font-semibold">top industry</span> experts</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Call to Action */}
+        <div className="text-center mt-8">
+          <p className="text-yellow-100 text-lg mb-4">
+            That's exactly what you can do inside <span className="text-yellow-300 font-bold">THE REAL WORLD.</span>
+          </p>
+        </div>
       </div>
     </div>
   );
