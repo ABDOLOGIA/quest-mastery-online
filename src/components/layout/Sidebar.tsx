@@ -5,13 +5,11 @@ import { Button } from '../ui/button';
 import { 
   Home, 
   FileText, 
-  Users, 
+  Calendar, 
   BarChart3, 
-  Settings,
-  BookOpen,
-  Clock,
-  Award,
-  PlusCircle
+  Settings, 
+  User,
+  ArrowLeft
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -23,65 +21,76 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
   const { user } = useAuth();
 
   const getMenuItems = () => {
-    const baseItems = [
+    const common = [
       { id: 'dashboard', label: 'Dashboard', icon: Home },
+      { id: 'profile', label: 'Profile', icon: User },
+      { id: 'settings', label: 'Settings', icon: Settings }
     ];
 
-    if (user?.role === 'admin') {
+    if (user?.role === 'student') {
       return [
-        ...baseItems,
-        { id: 'users', label: 'User Management', icon: Users },
-        { id: 'exams', label: 'All Exams', icon: FileText },
-        { id: 'analytics', label: 'System Analytics', icon: BarChart3 },
-        { id: 'settings', label: 'System Settings', icon: Settings },
+        ...common.slice(0, 1), // Dashboard
+        { id: 'exams', label: 'Available Exams', icon: FileText },
+        { id: 'schedule', label: 'Exam Schedule', icon: Calendar },
+        { id: 'results', label: 'My Results', icon: BarChart3 },
+        ...common.slice(1) // Profile, Settings
       ];
     }
 
     if (user?.role === 'teacher') {
       return [
-        ...baseItems,
-        { id: 'my-exams', label: 'My Exams', icon: FileText },
-        { id: 'create-exam', label: 'Create Exam', icon: PlusCircle },
-        { id: 'questions', label: 'Question Bank', icon: BookOpen },
-        { id: 'grading', label: 'Grading', icon: Award },
-        { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+        ...common.slice(0, 1), // Dashboard
+        { id: 'questions', label: 'Questions', icon: FileText },
+        { id: 'exams', label: 'Manage Exams', icon: Calendar },
+        { id: 'results', label: 'Results', icon: BarChart3 },
+        ...common.slice(1) // Profile, Settings
       ];
     }
 
-    // Student menu
-    return [
-      ...baseItems,
-      { id: 'exams', label: 'Available Exams', icon: FileText },
-      { id: 'my-results', label: 'My Results', icon: Award },
-      { id: 'schedule', label: 'Exam Schedule', icon: Clock },
-    ];
+    return common; // Admin
   };
 
   const menuItems = getMenuItems();
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 min-h-screen">
-      <nav className="p-4 space-y-2">
+    <div className="w-64 bg-white border-r border-gray-200 h-full flex flex-col">
+      <div className="p-6 border-b border-gray-200">
+        <h2 className="text-lg font-semibold text-gray-900">
+          {user?.role === 'student' ? 'Student Portal' : 
+           user?.role === 'teacher' ? 'Teacher Portal' : 'Admin Portal'}
+        </h2>
+      </div>
+      
+      <nav className="flex-1 p-4 space-y-2">
         {menuItems.map((item) => {
           const Icon = item.icon;
+          const isActive = activeSection === item.id;
+          
           return (
             <Button
               key={item.id}
-              variant={activeSection === item.id ? "default" : "ghost"}
-              className={`w-full justify-start ${
-                activeSection === item.id 
-                  ? 'bg-primary text-white' 
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
+              variant={isActive ? "default" : "ghost"}
+              className="w-full justify-start"
               onClick={() => onSectionChange(item.id)}
             >
-              <Icon className="mr-3 h-4 w-4" />
+              <Icon className="w-4 h-4 mr-3" />
               {item.label}
             </Button>
           );
         })}
       </nav>
-    </aside>
+
+      <div className="p-4 border-t border-gray-200">
+        <Button 
+          variant="outline" 
+          className="w-full justify-start"
+          onClick={() => window.history.back()}
+        >
+          <ArrowLeft className="w-4 h-4 mr-3" />
+          Go Back
+        </Button>
+      </div>
+    </div>
   );
 };
 

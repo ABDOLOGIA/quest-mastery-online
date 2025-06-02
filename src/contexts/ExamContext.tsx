@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState } from 'react';
 
 export interface Question {
@@ -63,6 +62,8 @@ interface ExamContextType {
   addWarning: (attemptId: string, warning: Warning) => void;
   getExamResults: (examId: string) => ExamAttempt[];
   hasSubmittedExam: (examId: string, studentId: string) => boolean;
+  setCurrentExam: (exam: Exam | null) => void;
+  setCurrentAttempt: (attempt: ExamAttempt | null) => void;
 }
 
 const ExamContext = createContext<ExamContextType | undefined>(undefined);
@@ -90,7 +91,7 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       allowReview: true,
       shuffleQuestions: false,
       createdBy: '2',
-      scheduledDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+      scheduledDate: new Date(Date.now() - 30 * 60 * 1000), // Available now
       questions: [
         {
           id: 'q1',
@@ -331,7 +332,9 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       submitExam,
       addWarning,
       getExamResults,
-      hasSubmittedExam
+      hasSubmittedExam,
+      setCurrentExam,
+      setCurrentAttempt
     }}>
       {children}
     </ExamContext.Provider>
