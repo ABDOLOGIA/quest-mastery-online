@@ -7,7 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Loading } from '../ui/loading';
-import { GraduationCap, Mail, Lock, AlertCircle, RefreshCw, BookOpen, Target, Trophy, Users } from 'lucide-react';
+import { GraduationCap, Mail, Lock, AlertCircle, RefreshCw, BookOpen, Trophy, Users } from 'lucide-react';
 
 interface LoginFormProps {
   onSwitchToRegister: () => void;
@@ -105,7 +105,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
         <div className="absolute bottom-20 right-20 w-28 h-28 bg-blue-300 rounded-lg transform -rotate-12 opacity-50 animate-bounce"></div>
         
         {/* Grid pattern */}
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%2364748b" fill-opacity="0.05"%3E%3Ccircle cx="20" cy="20" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-30"></div>
+        <div className="absolute inset-0 opacity-30" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2364748b' fill-opacity='0.05'%3E%3Ccircle cx='20' cy='20' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+        }}></div>
       </div>
 
       <div className="w-full max-w-md space-y-6 relative z-10">
@@ -291,7 +293,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
         {/* Call to Action */}
         <div className="text-center mt-8">
           <p className="text-slate-600 text-lg mb-4">
-            That's exactly what you can do inside <span className="text-blue-600 font-bold">THE REAL WORLD.</span>
+            That's exactly what you can do, join <span className="text-blue-600 font-bold">YourExam.net</span> and solve your <span className="text-blue-600 font-bold">PROBLEMS</span>
           </p>
         </div>
       </div>
