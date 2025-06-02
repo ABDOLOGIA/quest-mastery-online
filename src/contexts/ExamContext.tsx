@@ -33,6 +33,7 @@ export interface Exam {
   shuffleQuestions: boolean;
   createdBy: string;
   scheduledDate?: Date;
+  alwaysAvailable?: boolean; // New property for always available exams
 }
 
 export interface ExamAttempt {
@@ -77,6 +78,9 @@ export const useExam = () => {
 };
 
 export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Fixed scheduling - these dates won't change on refresh
+  const baseDate = new Date('2024-06-01T00:00:00Z'); // Fixed base date
+  
   const [exams, setExams] = useState<Exam[]>([
     {
       id: 'exam-1',
@@ -84,14 +88,14 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       subject: 'Mathematics',
       description: 'Test your knowledge of basic algebra concepts',
       duration: 75,
-      startTime: new Date(Date.now() - 24 * 60 * 60 * 1000),
-      endTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      startTime: new Date(baseDate.getTime() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
+      endTime: new Date(baseDate.getTime() + 365 * 24 * 60 * 60 * 1000), // 1 year from base
       totalPoints: 100,
       isActive: true,
       allowReview: true,
       shuffleQuestions: false,
       createdBy: '2',
-      scheduledDate: new Date(Date.now() - 30 * 60 * 1000), // Available now
+      alwaysAvailable: true, // Always available
       questions: [
         {
           id: 'q1',
@@ -158,14 +162,14 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       subject: 'Physics',
       description: 'Test your understanding of basic mechanics principles',
       duration: 80,
-      startTime: new Date(Date.now() - 12 * 60 * 60 * 1000),
-      endTime: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+      startTime: new Date('2024-06-15T10:00:00Z'), // Fixed date
+      endTime: new Date('2024-06-25T18:00:00Z'), // Fixed date
       totalPoints: 120,
       isActive: true,
       allowReview: true,
       shuffleQuestions: false,
       createdBy: '2',
-      scheduledDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+      scheduledDate: new Date('2024-06-15T10:00:00Z'), // Fixed scheduled date
       questions: [
         {
           id: 'q1',
@@ -191,14 +195,14 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       subject: 'Chinese HSK2',
       description: 'HSK Level 2 Chinese proficiency test',
       duration: 90,
-      startTime: new Date(Date.now() - 6 * 60 * 60 * 1000),
-      endTime: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      startTime: new Date('2024-06-20T14:00:00Z'), // Fixed date
+      endTime: new Date('2024-06-30T20:00:00Z'), // Fixed date
       totalPoints: 100,
       isActive: true,
       allowReview: true,
       shuffleQuestions: false,
       createdBy: '2',
-      scheduledDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      scheduledDate: new Date('2024-06-20T14:00:00Z'), // Fixed scheduled date
       questions: [
         {
           id: 'q1',
