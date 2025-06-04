@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export type UserRole = 'admin' | 'teacher' | 'student';
 
@@ -39,17 +40,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Check for existing session
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        await fetchUserProfile(session.user.id);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          await fetchUserProfile(session.user.id);
+        }
+      } catch (error) {
+        console.error('Error getting session:', error);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     getSession();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.id);
       if (session?.user) {
         await fetchUserProfile(session.user.id);
       } else {
@@ -63,6 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      // Use a more generic approach that should work with the current types
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -79,10 +87,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: data.id,
           email: data.email,
           name: data.name,
-          role: data.role,
-          avatar: data.avatar,
-          department: data.department,
-          studentId: data.student_id
+          role: data.role as UserRole,
+          avatar: data.avatar || undefined,
+          department: data.department || undefined,
+          studentId: data.student_id || undefined
         });
       }
     } catch (error) {
@@ -122,7 +130,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: userData.email!,
-        password: userData.password
+        password: userData.password,
+        options: {
+          data: {
+            name: userData.name,
+            role: userData.role || 'student'
+          }
+        }
       });
 
       if (authError) {
@@ -132,22 +146,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (authData.user) {
-        // Create user profile
+        // Create user profile - this should be handled by the trigger we created
+        // But let's add a fallback just in case
         const { error: profileError } = await supabase
           .from('profiles')
-          .insert({
+          .upsert({
             id: authData.user.id,
             email: userData.email!,
             name: userData.name!,
             role: userData.role || 'student',
-            department: userData.department,
-            student_id: userData.studentId
+            department: userData.department || null,
+            student_id: userData.studentId || null
           });
 
         if (profileError) {
           console.error('Profile creation error:', profileError);
-          setIsLoading(false);
-          return false;
+          // Don't fail registration if profile creation fails
         }
       }
 
