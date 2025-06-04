@@ -1,5 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 
 export type UserRole = 'admin' | 'teacher' | 'student';
 
@@ -36,84 +37,132 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored user session
-    const storedUser = localStorage.getItem('examSystem_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setIsLoading(false);
+    // Check for existing session
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await fetchUserProfile(session.user.id);
+      }
+      setIsLoading(false);
+    };
+
+    getSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        await fetchUserProfile(session.user.id);
+      } else {
+        setUser(null);
+      }
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        return;
+      }
+
+      if (data) {
+        setUser({
+          id: data.id,
+          email: data.email,
+          name: data.name,
+          role: data.role,
+          avatar: data.avatar,
+          department: data.department,
+          studentId: data.student_id
+        });
+      }
+    } catch (error) {
+      console.error('Error in fetchUserProfile:', error);
+    }
+  };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
-    // Simulate API call - replace with real authentication
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Demo users for testing
-    const demoUsers: Record<string, User & { password: string }> = {
-      'admin@exam.com': {
-        id: '1',
-        email: 'admin@exam.com',
-        name: 'System Administrator',
-        role: 'admin',
-        password: 'admin123'
-      },
-      'teacher@exam.com': {
-        id: '2',
-        email: 'teacher@exam.com',
-        name: 'Dr. Sarah Johnson',
-        role: 'teacher',
-        department: 'Computer Science',
-        password: 'teacher123'
-      },
-      'student@exam.com': {
-        id: '3',
-        email: 'student@exam.com',
-        name: 'John Smith',
-        role: 'student',
-        studentId: 'CS2024001',
-        password: 'student123'
-      }
-    };
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
-    const foundUser = demoUsers[email];
-    if (foundUser && foundUser.password === password) {
-      const { password: _, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem('examSystem_user', JSON.stringify(userWithoutPassword));
+      if (error) {
+        console.error('Login error:', error);
+        setIsLoading(false);
+        return false;
+      }
+
+      // User profile will be fetched automatically via onAuthStateChange
       setIsLoading(false);
       return true;
+    } catch (error) {
+      console.error('Login error:', error);
+      setIsLoading(false);
+      return false;
     }
-
-    setIsLoading(false);
-    return false;
   };
 
   const register = async (userData: Partial<User> & { password: string }): Promise<boolean> => {
     setIsLoading(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const newUser: User = {
-      id: Math.random().toString(36).substr(2, 9),
-      email: userData.email!,
-      name: userData.name!,
-      role: userData.role || 'student',
-      department: userData.department,
-      studentId: userData.studentId
-    };
+    try {
+      // Create auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: userData.email!,
+        password: userData.password
+      });
 
-    setUser(newUser);
-    localStorage.setItem('examSystem_user', JSON.stringify(newUser));
-    setIsLoading(false);
-    return true;
+      if (authError) {
+        console.error('Registration error:', authError);
+        setIsLoading(false);
+        return false;
+      }
+
+      if (authData.user) {
+        // Create user profile
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: authData.user.id,
+            email: userData.email!,
+            name: userData.name!,
+            role: userData.role || 'student',
+            department: userData.department,
+            student_id: userData.studentId
+          });
+
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          setIsLoading(false);
+          return false;
+        }
+      }
+
+      setIsLoading(false);
+      return true;
+    } catch (error) {
+      console.error('Registration error:', error);
+      setIsLoading(false);
+      return false;
+    }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('examSystem_user');
   };
 
   return (
