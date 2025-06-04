@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
@@ -75,9 +74,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
       return;
     }
 
-    const success = await login(email, password);
-    if (!success) {
-      setError('Invalid email/ID or password');
+    const result = await login(email, password);
+    if (!result.success) {
+      setError(result.error || 'Invalid email or password');
       generateCaptcha();
       setCaptcha('');
     }

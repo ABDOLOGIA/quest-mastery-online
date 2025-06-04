@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth, UserRole } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
@@ -7,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Alert, AlertDescription } from '../ui/alert';
-import { GraduationCap, User, Mail, Lock, AlertCircle, CheckCircle, X } from 'lucide-react';
+import { GraduationCap, User, Mail, Lock, AlertCircle, CheckCircle, X, Check } from 'lucide-react';
 
 interface RegisterFormProps {
   onSwitchToLogin: () => void;
@@ -24,6 +23,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
     studentId: ''
   });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [passwordStrength, setPasswordStrength] = useState({
     hasMinLength: false,
     hasUppercase: false,
@@ -48,6 +48,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
 
     if (!formData.name || !formData.email || !formData.password) {
       setError('Please fill in all required fields');
@@ -64,9 +65,21 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
       return;
     }
 
-    const success = await register(formData);
-    if (!success) {
-      setError('Registration failed. Please try again.');
+    const result = await register(formData);
+    if (result.success) {
+      setSuccess('Registration successful! Please check your email to confirm your account.');
+      // Clear the form
+      setFormData({
+        name: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        role: 'student',
+        department: '',
+        studentId: ''
+      });
+    } else {
+      setError(result.error || 'Registration failed. Please try again.');
     }
   };
 
@@ -89,7 +102,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
               <GraduationCap className="w-10 h-10 text-white" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">Exam.net</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">YourExam.net</h1>
           <p className="text-blue-100">Create your account</p>
         </div>
 
@@ -188,7 +201,6 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
                   />
                 </div>
                 
-                {/* Password Strength Indicators */}
                 {formData.password && (
                   <div className="mt-2 p-3 bg-gray-50 rounded-lg">
                     <p className="text-sm font-medium text-gray-700 mb-2">Password Requirements:</p>
@@ -234,6 +246,13 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              {success && (
+                <Alert className="border-green-200 bg-green-50 text-green-800">
+                  <Check className="h-4 w-4" />
+                  <AlertDescription>{success}</AlertDescription>
                 </Alert>
               )}
 

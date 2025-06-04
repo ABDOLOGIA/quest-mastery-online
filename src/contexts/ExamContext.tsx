@@ -1,4 +1,7 @@
-import React, { createContext, useContext, useState } from 'react';
+
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from './AuthContext';
 
 export interface Question {
   id: string;
@@ -33,7 +36,7 @@ export interface Exam {
   shuffleQuestions: boolean;
   createdBy: string;
   scheduledDate?: Date;
-  alwaysAvailable?: boolean; // New property for always available exams
+  alwaysAvailable?: boolean;
 }
 
 export interface ExamAttempt {
@@ -56,15 +59,17 @@ interface ExamContextType {
   submittedExams: string[];
   currentExam: Exam | null;
   currentAttempt: ExamAttempt | null;
-  createExam: (exam: Omit<Exam, 'id'>) => void;
+  createExam: (exam: Omit<Exam, 'id'>) => Promise<void>;
   startExam: (examId: string, studentId: string) => ExamAttempt | null;
   submitAnswer: (questionId: string, answer: string | string[]) => void;
-  submitExam: () => void;
+  submitExam: () => Promise<void>;
   addWarning: (attemptId: string, warning: Warning) => void;
   getExamResults: (examId: string) => ExamAttempt[];
   hasSubmittedExam: (examId: string, studentId: string) => boolean;
   setCurrentExam: (exam: Exam | null) => void;
   setCurrentAttempt: (attempt: ExamAttempt | null) => void;
+  loadExams: () => Promise<void>;
+  isLoading: boolean;
 }
 
 const ExamContext = createContext<ExamContextType | undefined>(undefined);
@@ -78,158 +83,199 @@ export const useExam = () => {
 };
 
 export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Fixed scheduling - these dates won't change on refresh
-  const baseDate = new Date('2024-06-01T00:00:00Z'); // Fixed base date
-  
-  const [exams, setExams] = useState<Exam[]>([
-    {
-      id: 'exam-1',
-      title: 'Mathematics - Algebra Basics',
-      subject: 'Mathematics',
-      description: 'Test your knowledge of basic algebra concepts',
-      duration: 75,
-      startTime: new Date(baseDate.getTime() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
-      endTime: new Date(baseDate.getTime() + 365 * 24 * 60 * 60 * 1000), // 1 year from base
-      totalPoints: 100,
-      isActive: true,
-      allowReview: true,
-      shuffleQuestions: false,
-      createdBy: '2',
-      alwaysAvailable: true, // Always available
-      questions: [
-        {
-          id: 'q1',
-          type: 'single-choice',
-          question: 'What is the value of x if 2x + 5 = 13?',
-          options: ['3', '4', '5', '6'],
-          correctAnswer: '4',
-          points: 15,
-          category: 'Algebra',
-          difficulty: 'easy'
-        },
-        {
-          id: 'q2',
-          type: 'multiple-choice',
-          question: 'Which of the following are prime numbers?',
-          options: ['2', '3', '4', '5', '6', '7'],
-          correctAnswer: ['2', '3', '5', '7'],
-          points: 20,
-          category: 'Number Theory',
-          difficulty: 'medium'
-        },
-        {
-          id: 'q3',
-          type: 'fill-blank',
-          question: 'The square root of 64 is ____.',
-          correctAnswer: '8',
-          points: 10,
-          category: 'Arithmetic',
-          difficulty: 'easy'
-        },
-        {
-          id: 'q4',
-          type: 'short-answer',
-          question: 'Explain the difference between a rational and irrational number.',
-          points: 25,
-          category: 'Number Theory',
-          difficulty: 'medium'
-        },
-        {
-          id: 'q5',
-          type: 'single-choice',
-          question: 'What is the slope of the line y = 3x + 2?',
-          options: ['2', '3', '5', '1'],
-          correctAnswer: '3',
-          points: 15,
-          category: 'Linear Equations',
-          difficulty: 'medium'
-        },
-        {
-          id: 'q6',
-          type: 'single-choice',
-          question: 'If f(x) = x² + 2x + 1, what is f(3)?',
-          options: ['12', '14', '16', '18'],
-          correctAnswer: '16',
-          points: 15,
-          category: 'Functions',
-          difficulty: 'medium'
-        }
-      ]
-    },
-    {
-      id: 'exam-2',
-      title: 'Physics - Mechanics',
-      subject: 'Physics',
-      description: 'Test your understanding of basic mechanics principles',
-      duration: 80,
-      startTime: new Date('2024-06-15T10:00:00Z'), // Fixed date
-      endTime: new Date('2024-06-25T18:00:00Z'), // Fixed date
-      totalPoints: 120,
-      isActive: true,
-      allowReview: true,
-      shuffleQuestions: false,
-      createdBy: '2',
-      scheduledDate: new Date('2024-06-15T10:00:00Z'), // Fixed scheduled date
-      questions: [
-        {
-          id: 'q1',
-          type: 'single-choice',
-          question: "What is Newton's first law of motion?",
-          options: [
-            'Force equals mass times acceleration',
-            'An object at rest stays at rest unless acted upon by a force',
-            'For every action there is an equal and opposite reaction',
-            'Energy cannot be created or destroyed'
-          ],
-          correctAnswer: 'An object at rest stays at rest unless acted upon by a force',
-          points: 20,
-          category: 'Laws of Motion',
-          difficulty: 'easy'
-        }
-        // Add more physics questions...
-      ]
-    },
-    {
-      id: 'exam-3',
-      title: 'Chinese HSK2 - Vocabulary & Grammar',
-      subject: 'Chinese HSK2',
-      description: 'HSK Level 2 Chinese proficiency test',
-      duration: 90,
-      startTime: new Date('2024-06-20T14:00:00Z'), // Fixed date
-      endTime: new Date('2024-06-30T20:00:00Z'), // Fixed date
-      totalPoints: 100,
-      isActive: true,
-      allowReview: true,
-      shuffleQuestions: false,
-      createdBy: '2',
-      scheduledDate: new Date('2024-06-20T14:00:00Z'), // Fixed scheduled date
-      questions: [
-        {
-          id: 'q1',
-          type: 'single-choice',
-          question: '我_____学生。(I am a student.)',
-          options: ['是', '有', '在', '做'],
-          correctAnswer: '是',
-          points: 10,
-          category: 'Grammar',
-          difficulty: 'easy'
-        }
-        // Add more Chinese questions...
-      ]
-    }
-  ]);
-
+  const { user } = useAuth();
+  const [exams, setExams] = useState<Exam[]>([]);
   const [attempts, setAttempts] = useState<ExamAttempt[]>([]);
   const [submittedExams, setSubmittedExams] = useState<string[]>([]);
   const [currentExam, setCurrentExam] = useState<Exam | null>(null);
   const [currentAttempt, setCurrentAttempt] = useState<ExamAttempt | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const createExam = (examData: Omit<Exam, 'id'>) => {
-    const newExam: Exam = {
-      ...examData,
-      id: `exam-${Date.now()}`
-    };
-    setExams(prev => [...prev, newExam]);
+  useEffect(() => {
+    if (user) {
+      loadExams();
+      loadAttempts();
+    }
+  }, [user]);
+
+  const loadExams = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      let query = supabase.from('exams').select(`
+        *,
+        subjects:subject_id(name),
+        questions(*)
+      `);
+
+      // Students can only see published exams
+      if (user.role === 'student') {
+        query = query.eq('is_published', true);
+      }
+      // Teachers see their own exams
+      else if (user.role === 'teacher') {
+        query = query.eq('teacher_id', user.id);
+      }
+      // Admins see all exams
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error loading exams:', error);
+        return;
+      }
+
+      if (data) {
+        const formattedExams: Exam[] = data.map(exam => ({
+          id: exam.id,
+          title: exam.title,
+          description: exam.description || '',
+          subject: exam.subjects?.name || 'General',
+          duration: exam.duration_minutes,
+          startTime: new Date(exam.start_time || Date.now()),
+          endTime: new Date(exam.end_time || Date.now() + 24 * 60 * 60 * 1000),
+          totalPoints: exam.total_marks,
+          isActive: exam.is_published,
+          allowReview: true,
+          shuffleQuestions: false,
+          createdBy: exam.teacher_id,
+          alwaysAvailable: !exam.start_time,
+          questions: exam.questions?.map((q: any) => ({
+            id: q.id,
+            type: q.question_type as 'single-choice' | 'multiple-choice' | 'fill-blank' | 'short-answer',
+            question: q.question_text,
+            options: q.options || [],
+            correctAnswer: q.correct_answer,
+            points: q.marks,
+            category: 'General',
+            difficulty: 'medium' as const
+          })) || []
+        }));
+
+        setExams(formattedExams);
+      }
+    } catch (error) {
+      console.error('Error in loadExams:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadAttempts = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('exam_results')
+        .select('*')
+        .eq('student_id', user.id);
+
+      if (error) {
+        console.error('Error loading attempts:', error);
+        return;
+      }
+
+      if (data) {
+        const formattedAttempts: ExamAttempt[] = data.map(result => ({
+          id: result.id,
+          examId: result.exam_id,
+          studentId: result.student_id,
+          answers: result.answers as Record<string, string | string[]>,
+          startTime: new Date(result.started_at),
+          endTime: result.completed_at ? new Date(result.completed_at) : undefined,
+          score: result.score,
+          isCompleted: result.is_completed,
+          timeSpent: 0,
+          warnings: []
+        }));
+
+        setAttempts(formattedAttempts);
+        setSubmittedExams(formattedAttempts.filter(a => a.isCompleted).map(a => a.examId));
+      }
+    } catch (error) {
+      console.error('Error in loadAttempts:', error);
+    }
+  };
+
+  const createExam = async (examData: Omit<Exam, 'id'>) => {
+    if (!user || (user.role !== 'teacher' && user.role !== 'admin')) return;
+
+    try {
+      // First, get or create the subject
+      let subjectId;
+      const { data: existingSubject } = await supabase
+        .from('subjects')
+        .select('id')
+        .eq('name', examData.subject)
+        .single();
+
+      if (existingSubject) {
+        subjectId = existingSubject.id;
+      } else {
+        const { data: newSubject, error: subjectError } = await supabase
+          .from('subjects')
+          .insert({ name: examData.subject })
+          .select('id')
+          .single();
+
+        if (subjectError) {
+          console.error('Error creating subject:', subjectError);
+          return;
+        }
+        subjectId = newSubject.id;
+      }
+
+      // Create the exam
+      const { data: examResult, error: examError } = await supabase
+        .from('exams')
+        .insert({
+          title: examData.title,
+          description: examData.description,
+          subject_id: subjectId,
+          teacher_id: user.id,
+          duration_minutes: examData.duration,
+          total_marks: examData.totalPoints,
+          start_time: examData.startTime.toISOString(),
+          end_time: examData.endTime.toISOString(),
+          is_published: examData.isActive
+        })
+        .select()
+        .single();
+
+      if (examError) {
+        console.error('Error creating exam:', examError);
+        return;
+      }
+
+      // Create questions
+      if (examData.questions.length > 0) {
+        const questionsData = examData.questions.map((question, index) => ({
+          exam_id: examResult.id,
+          question_text: question.question,
+          question_type: question.type,
+          options: question.options || null,
+          correct_answer: Array.isArray(question.correctAnswer) 
+            ? question.correctAnswer.join(',') 
+            : question.correctAnswer || '',
+          marks: question.points,
+          order_number: index + 1
+        }));
+
+        const { error: questionsError } = await supabase
+          .from('questions')
+          .insert(questionsData);
+
+        if (questionsError) {
+          console.error('Error creating questions:', questionsError);
+        }
+      }
+
+      // Reload exams to get the new one
+      await loadExams();
+    } catch (error) {
+      console.error('Error in createExam:', error);
+    }
   };
 
   const hasSubmittedExam = (examId: string, studentId: string): boolean => {
@@ -244,7 +290,6 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const exam = exams.find(e => e.id === examId);
     if (!exam || !exam.isActive) return null;
 
-    // Check if student already submitted this exam
     if (hasSubmittedExam(examId, studentId)) {
       alert('You have already submitted this exam and cannot retake it.');
       return null;
@@ -278,7 +323,6 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } : null);
 
-    // Update attempts array
     setAttempts(prev => prev.map(attempt => 
       attempt.id === currentAttempt.id 
         ? { ...attempt, answers: { ...attempt.answers, [questionId]: answer } }
@@ -294,29 +338,55 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
     ));
   };
 
-  const submitExam = () => {
-    if (!currentAttempt || !currentExam) return;
+  const submitExam = async () => {
+    if (!currentAttempt || !currentExam || !user) return;
 
-    let score = 0;
-    currentExam.questions.forEach(question => {
-      const userAnswer = currentAttempt.answers[question.id];
-      if (userAnswer && userAnswer === question.correctAnswer) {
-        score += question.points;
+    try {
+      let score = 0;
+      currentExam.questions.forEach(question => {
+        const userAnswer = currentAttempt.answers[question.id];
+        if (userAnswer && userAnswer === question.correctAnswer) {
+          score += question.points;
+        }
+      });
+
+      const { error } = await supabase
+        .from('exam_results')
+        .insert({
+          exam_id: currentExam.id,
+          student_id: user.id,
+          answers: currentAttempt.answers,
+          score,
+          total_marks: currentExam.totalPoints,
+          started_at: currentAttempt.startTime.toISOString(),
+          completed_at: new Date().toISOString(),
+          is_completed: true
+        });
+
+      if (error) {
+        console.error('Error submitting exam:', error);
+        return;
       }
-    });
 
-    const updatedAttempt = {
-      ...currentAttempt,
-      endTime: new Date(),
-      isCompleted: true,
-      timeSpent: Math.floor((new Date().getTime() - currentAttempt.startTime.getTime()) / 1000)
-    };
+      const updatedAttempt = {
+        ...currentAttempt,
+        endTime: new Date(),
+        isCompleted: true,
+        score,
+        timeSpent: Math.floor((new Date().getTime() - currentAttempt.startTime.getTime()) / 1000)
+      };
 
-    setCurrentAttempt(updatedAttempt);
-    setAttempts(prev => prev.map(attempt => 
-      attempt.id === currentAttempt.id ? updatedAttempt : attempt
-    ));
-    setSubmittedExams(prev => [...prev, currentExam.id]);
+      setCurrentAttempt(updatedAttempt);
+      setAttempts(prev => prev.map(attempt => 
+        attempt.id === currentAttempt.id ? updatedAttempt : attempt
+      ));
+      setSubmittedExams(prev => [...prev, currentExam.id]);
+      
+      // Reload attempts to get the saved data
+      await loadAttempts();
+    } catch (error) {
+      console.error('Error in submitExam:', error);
+    }
   };
 
   const getExamResults = (examId: string): ExamAttempt[] => {
@@ -338,7 +408,9 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       getExamResults,
       hasSubmittedExam,
       setCurrentExam,
-      setCurrentAttempt
+      setCurrentAttempt,
+      loadExams,
+      isLoading
     }}>
       {children}
     </ExamContext.Provider>

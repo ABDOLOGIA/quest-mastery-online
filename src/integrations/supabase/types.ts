@@ -9,6 +9,117 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      exam_results: {
+        Row: {
+          answers: Json
+          completed_at: string | null
+          exam_id: string | null
+          id: string
+          is_completed: boolean
+          score: number
+          started_at: string
+          student_id: string | null
+          total_marks: number
+        }
+        Insert: {
+          answers: Json
+          completed_at?: string | null
+          exam_id?: string | null
+          id?: string
+          is_completed?: boolean
+          score?: number
+          started_at?: string
+          student_id?: string | null
+          total_marks: number
+        }
+        Update: {
+          answers?: Json
+          completed_at?: string | null
+          exam_id?: string | null
+          id?: string
+          is_completed?: boolean
+          score?: number
+          started_at?: string
+          student_id?: string | null
+          total_marks?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_results_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_results_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exams: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_minutes: number
+          end_time: string | null
+          id: string
+          is_published: boolean
+          start_time: string | null
+          subject_id: string | null
+          teacher_id: string | null
+          title: string
+          total_marks: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          end_time?: string | null
+          id?: string
+          is_published?: boolean
+          start_time?: string | null
+          subject_id?: string | null
+          teacher_id?: string | null
+          title: string
+          total_marks?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          end_time?: string | null
+          id?: string
+          is_published?: boolean
+          start_time?: string | null
+          subject_id?: string | null
+          teacher_id?: string | null
+          title?: string
+          total_marks?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exams_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exams_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar: string | null
@@ -42,6 +153,71 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           student_id?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      questions: {
+        Row: {
+          correct_answer: string
+          created_at: string
+          exam_id: string | null
+          id: string
+          marks: number
+          options: Json | null
+          order_number: number
+          question_text: string
+          question_type: string
+        }
+        Insert: {
+          correct_answer: string
+          created_at?: string
+          exam_id?: string | null
+          id?: string
+          marks?: number
+          options?: Json | null
+          order_number?: number
+          question_text: string
+          question_type?: string
+        }
+        Update: {
+          correct_answer?: string
+          created_at?: string
+          exam_id?: string | null
+          id?: string
+          marks?: number
+          options?: Json | null
+          order_number?: number
+          question_text?: string
+          question_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subjects: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
         }
         Relationships: []
       }

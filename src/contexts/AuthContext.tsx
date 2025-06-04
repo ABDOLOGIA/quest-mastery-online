@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
+import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 export type UserRole = 'admin' | 'teacher' | 'student';
 
@@ -17,9 +17,10 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  register: (userData: Partial<User> & { password: string }) => Promise<boolean>;
+  session: Session | null;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
+  register: (userData: Partial<User> & { password: string }) => Promise<{ success: boolean; error?: string }>;
   isLoading: boolean;
 }
 
@@ -35,42 +36,48 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session
-    const getSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          await fetchUserProfile(session.user.id);
-        }
-      } catch (error) {
-        console.error('Error getting session:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    getSession();
-
-    // Listen for auth changes
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.id);
+      setSession(session);
+      
       if (session?.user) {
-        await fetchUserProfile(session.user.id);
+        // Fetch user profile when authenticated
+        setTimeout(() => {
+          fetchUserProfile(session.user.id);
+        }, 0);
       } else {
         setUser(null);
       }
       setIsLoading(false);
     });
 
+    // Check for existing session
+    const getInitialSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          setSession(session);
+          await fetchUserProfile(session.user.id);
+        }
+      } catch (error) {
+        console.error('Error getting initial session:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    getInitialSession();
+
     return () => subscription.unsubscribe();
   }, []);
 
   const fetchUserProfile = async (userId: string) => {
     try {
-      // Use a more generic approach that should work with the current types
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -98,7 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     
     try {
@@ -110,31 +117,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         console.error('Login error:', error);
         setIsLoading(false);
-        return false;
+        return { success: false, error: error.message };
       }
 
-      // User profile will be fetched automatically via onAuthStateChange
-      setIsLoading(false);
-      return true;
+      // Profile will be fetched automatically via onAuthStateChange
+      return { success: true };
     } catch (error) {
       console.error('Login error:', error);
       setIsLoading(false);
-      return false;
+      return { success: false, error: 'An unexpected error occurred' };
     }
   };
 
-  const register = async (userData: Partial<User> & { password: string }): Promise<boolean> => {
+  const register = async (userData: Partial<User> & { password: string }): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     
     try {
-      // Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: userData.email!,
         password: userData.password,
         options: {
+          emailRedirectTo: `${window.location.origin}/`,
           data: {
             name: userData.name,
-            role: userData.role || 'student'
+            role: userData.role || 'student',
+            department: userData.department || null,
+            studentId: userData.studentId || null
           }
         }
       });
@@ -142,45 +150,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (authError) {
         console.error('Registration error:', authError);
         setIsLoading(false);
-        return false;
-      }
-
-      if (authData.user) {
-        // Create user profile - this should be handled by the trigger we created
-        // But let's add a fallback just in case
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert({
-            id: authData.user.id,
-            email: userData.email!,
-            name: userData.name!,
-            role: userData.role || 'student',
-            department: userData.department || null,
-            student_id: userData.studentId || null
-          });
-
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
-          // Don't fail registration if profile creation fails
-        }
+        return { success: false, error: authError.message };
       }
 
       setIsLoading(false);
-      return true;
+      return { success: true };
     } catch (error) {
       console.error('Registration error:', error);
       setIsLoading(false);
-      return false;
+      return { success: false, error: 'An unexpected error occurred' };
     }
   };
 
   const logout = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    setSession(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, register, isLoading }}>
+    <AuthContext.Provider value={{ user, session, login, logout, register, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
