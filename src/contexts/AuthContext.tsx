@@ -40,6 +40,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log('Setting up auth state listener...');
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.id);
@@ -47,9 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (session?.user) {
         // Fetch user profile when authenticated
-        setTimeout(() => {
-          fetchUserProfile(session.user.id);
-        }, 0);
+        await fetchUserProfile(session.user.id);
       } else {
         setUser(null);
       }
@@ -59,13 +59,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Check for existing session
     const getInitialSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('Initial session check:', session?.user?.id, error);
+        
+        if (error) {
+          console.error('Error getting initial session:', error);
+          setIsLoading(false);
+          return;
+        }
+        
         if (session?.user) {
           setSession(session);
           await fetchUserProfile(session.user.id);
         }
       } catch (error) {
-        console.error('Error getting initial session:', error);
+        console.error('Error in getInitialSession:', error);
       } finally {
         setIsLoading(false);
       }
@@ -78,6 +86,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log('Fetching profile for user:', userId);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -90,6 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (data) {
+        console.log('Profile data fetched:', data);
         setUser({
           id: data.id,
           email: data.email,
@@ -109,6 +120,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     
     try {
+      console.log('Attempting login for:', email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -120,8 +133,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: error.message };
       }
 
-      // Profile will be fetched automatically via onAuthStateChange
-      return { success: true };
+      if (data?.user) {
+        console.log('Login successful for user:', data.user.id);
+        // Profile will be fetched automatically via onAuthStateChange
+        return { success: true };
+      }
+
+      setIsLoading(false);
+      return { success: false, error: 'Login failed' };
     } catch (error) {
       console.error('Login error:', error);
       setIsLoading(false);
@@ -133,6 +152,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     
     try {
+      console.log('Attempting registration for:', userData.email);
+      
+      // First, sign up the user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: userData.email!,
         password: userData.password,
@@ -153,8 +175,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: authError.message };
       }
 
+      if (authData?.user) {
+        console.log('Registration successful for user:', authData.user.id);
+        
+        // Wait a moment for the trigger to create the profile
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Try to fetch the profile to confirm it was created
+        await fetchUserProfile(authData.user.id);
+        
+        setIsLoading(false);
+        return { success: true };
+      }
+
       setIsLoading(false);
-      return { success: true };
+      return { success: false, error: 'Registration failed' };
     } catch (error) {
       console.error('Registration error:', error);
       setIsLoading(false);
@@ -163,6 +198,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    console.log('Logging out user');
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);

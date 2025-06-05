@@ -74,11 +74,15 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
       return;
     }
 
+    console.log('Attempting login with email:', email);
+    
     const result = await login(email, password);
     if (!result.success) {
       setError(result.error || 'Invalid email or password');
       generateCaptcha();
       setCaptcha('');
+    } else {
+      console.log('Login successful, user should be redirected');
     }
   };
 

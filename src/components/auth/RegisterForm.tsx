@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth, UserRole } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
@@ -65,9 +66,14 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
       return;
     }
 
+    console.log('Submitting registration form with data:', {
+      ...formData,
+      password: '[HIDDEN]'
+    });
+
     const result = await register(formData);
     if (result.success) {
-      setSuccess('Registration successful! Please check your email to confirm your account.');
+      setSuccess('Registration successful! You are now logged in and can start using the platform.');
       // Clear the form
       setFormData({
         name: '',
