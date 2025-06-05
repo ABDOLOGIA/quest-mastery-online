@@ -7,7 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Alert, AlertDescription } from '../ui/alert';
-import { GraduationCap, User, Mail, Lock, AlertCircle, CheckCircle, X, Check } from 'lucide-react';
+import { GraduationCap, User, Mail, Lock, AlertCircle, CheckCircle, X, Check, Loader2 } from 'lucide-react';
 
 interface RegisterFormProps {
   onSwitchToLogin: () => void;
@@ -152,7 +152,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
 
               <div className="space-y-2">
                 <Label htmlFor="role">Role *</Label>
-                <Select value={formData.role} onValueChange={(value: UserRole) => handleChange('role', value)}>
+                <Select value={formData.role} onValueChange={(value: UserRole) => handleChange('role', value)} disabled={isLoading}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select your role" />
                   </SelectTrigger>
@@ -267,7 +267,14 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600" 
                 disabled={isLoading}
               >
-                {isLoading ? 'Creating Account...' : 'Create Account'}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating Account...
+                  </>
+                ) : (
+                  'Create Account'
+                )}
               </Button>
             </form>
 
@@ -276,6 +283,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
                 type="button"
                 onClick={onSwitchToLogin}
                 className="text-blue-600 hover:text-blue-800 text-sm"
+                disabled={isLoading}
               >
                 Already have an account? Sign in here
               </button>
