@@ -7,7 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Alert, AlertDescription } from '../ui/alert';
-import { GraduationCap, User, Mail, Lock, AlertCircle, CheckCircle, X, Check, Loader2 } from 'lucide-react';
+import { GraduationCap, User, Mail, Lock, AlertCircle, CheckCircle, X, Check, Loader2, RefreshCw } from 'lucide-react';
 
 interface RegisterFormProps {
   onSwitchToLogin: () => void;
@@ -25,6 +25,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState({
     hasMinLength: false,
     hasUppercase: false,
@@ -32,7 +33,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
     hasNumber: false,
     hasSpecialChar: false
   });
-  const { register, isLoading } = useAuth();
+  const { register, resendConfirmation, isLoading } = useAuth();
 
   const validatePasswordStrength = (password: string) => {
     const strength = {
@@ -50,6 +51,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    setNeedsConfirmation(false);
 
     if (!formData.name || !formData.email || !formData.password) {
       setError('Please fill in all required fields');
@@ -73,7 +75,12 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
 
     const result = await register(formData);
     if (result.success) {
-      setSuccess('Registration successful! You are now logged in and can start using the platform.');
+      if (result.needsConfirmation) {
+        setSuccess('Registration successful! Please check your email and click the confirmation link before logging in.');
+        setNeedsConfirmation(true);
+      } else {
+        setSuccess('Registration successful! You can now log in.');
+      }
       // Clear the form
       setFormData({
         name: '',
@@ -86,6 +93,20 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
       });
     } else {
       setError(result.error || 'Registration failed. Please try again.');
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!formData.email) {
+      setError('Please enter your email address first');
+      return;
+    }
+
+    const result = await resendConfirmation(formData.email);
+    if (result.success) {
+      setSuccess('Confirmation email sent! Please check your inbox.');
+    } else {
+      setError(result.error || 'Failed to resend confirmation email');
     }
   };
 
@@ -260,6 +281,21 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
                   <Check className="h-4 w-4" />
                   <AlertDescription>{success}</AlertDescription>
                 </Alert>
+              )}
+
+              {needsConfirmation && (
+                <div className="text-center">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={handleResendConfirmation}
+                    disabled={isLoading}
+                    className="text-sm"
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Resend Confirmation Email
+                  </Button>
+                </div>
               )}
 
               <Button 

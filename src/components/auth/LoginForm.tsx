@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
@@ -6,7 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Loading } from '../ui/loading';
-import { GraduationCap, Mail, Lock, AlertCircle, RefreshCw, BookOpen, Trophy, Users } from 'lucide-react';
+import { GraduationCap, Mail, Lock, AlertCircle, RefreshCw, BookOpen, Trophy, Users, Check } from 'lucide-react';
 
 interface LoginFormProps {
   onSwitchToRegister: () => void;
@@ -20,7 +21,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
   const [captchaQuestion, setCaptchaQuestion] = useState('');
   const [captchaAnswer, setCaptchaAnswer] = useState(0);
   const [error, setError] = useState('');
-  const { login, isLoading } = useAuth();
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  const { login, resendConfirmation, isLoading } = useAuth();
 
   // Generate more complex captcha
   React.useEffect(() => {
@@ -58,9 +60,26 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
     setCaptchaAnswer(answer);
   };
 
+  const handleResendConfirmation = async () => {
+    if (!email) {
+      setError('Please enter your email address first');
+      return;
+    }
+
+    const result = await resendConfirmation(email);
+    if (result.success) {
+      setError('');
+      setNeedsConfirmation(false);
+      alert('Confirmation email sent! Please check your inbox and click the confirmation link.');
+    } else {
+      setError(result.error || 'Failed to resend confirmation email');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setNeedsConfirmation(false);
 
     if (!email || !password) {
       setError('Please fill in all fields');
@@ -81,6 +100,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
       setError(result.error || 'Invalid email or password');
       generateCaptcha();
       setCaptcha('');
+      
+      if (result.needsConfirmation) {
+        setNeedsConfirmation(true);
+      }
     } else {
       console.log('Login successful, user should be redirected');
     }
@@ -198,6 +221,23 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
                 </Alert>
               )}
 
+              {needsConfirmation && (
+                <Alert className="border-yellow-500/30 bg-yellow-500/10">
+                  <Check className="h-4 w-4 text-yellow-400" />
+                  <AlertDescription className="text-yellow-400">
+                    Your email needs to be confirmed before you can log in.
+                    <Button 
+                      type="button" 
+                      variant="link" 
+                      onClick={handleResendConfirmation}
+                      className="text-yellow-300 hover:text-yellow-100 p-0 ml-2 h-auto"
+                    >
+                      Resend confirmation email
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <Button 
                 type="submit" 
                 className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700 text-black font-semibold shadow-lg" 
@@ -232,7 +272,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
       {/* Features Section */}
       <div className="w-full max-w-6xl mt-12 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-4">
-          {/* Master Essential Skills */}
           <div className="bg-black/80 backdrop-blur-lg border border-yellow-500/20 rounded-lg p-6 shadow-lg">
             <div className="flex items-center mb-4">
               <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-full flex items-center justify-center mr-4">
@@ -252,7 +291,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
             </div>
           </div>
 
-          {/* Join your real world Excellence */}
           <div className="bg-black/80 backdrop-blur-lg border border-yellow-500/20 rounded-lg p-6 shadow-lg">
             <div className="flex items-center mb-4">
               <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-full flex items-center justify-center mr-4">
@@ -272,7 +310,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
             </div>
           </div>
 
-          {/* Access to Success */}
           <div className="bg-black/80 backdrop-blur-lg border border-yellow-500/20 rounded-lg p-6 shadow-lg">
             <div className="flex items-center mb-4">
               <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-full flex items-center justify-center mr-4">
@@ -293,7 +330,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
           </div>
         </div>
 
-        {/* Call to Action */}
         <div className="text-center mt-8">
           <p className="text-gray-300 text-lg mb-4">
             That's exactly what you can do, join <span className="text-yellow-400 font-bold">YourExam.net</span> and solve your <span className="text-yellow-400 font-bold">PROBLEMS</span>

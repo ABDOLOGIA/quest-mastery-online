@@ -13,14 +13,16 @@ export interface User {
   avatar?: string;
   department?: string;
   studentId?: string;
+  emailConfirmed?: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string; needsConfirmation?: boolean }>;
   logout: () => Promise<void>;
-  register: (userData: Partial<User> & { password: string }) => Promise<{ success: boolean; error?: string }>;
+  register: (userData: Partial<User> & { password: string }) => Promise<{ success: boolean; error?: string; needsConfirmation?: boolean }>;
+  resendConfirmation: (email: string) => Promise<{ success: boolean; error?: string }>;
   isLoading: boolean;
 }
 
@@ -48,8 +50,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       
       if (session?.user) {
-        // Fetch user profile when authenticated
-        await fetchUserProfile(session.user.id);
+        // Check if email is confirmed
+        const emailConfirmed = session.user.email_confirmed_at !== null;
+        console.log('Email confirmed:', emailConfirmed);
+        
+        if (emailConfirmed) {
+          // Fetch user profile when authenticated and email is confirmed
+          await fetchUserProfile(session.user.id);
+        } else {
+          // Set user with limited info if email not confirmed
+          setUser({
+            id: session.user.id,
+            email: session.user.email || '',
+            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
+            role: 'student',
+            emailConfirmed: false
+          });
+        }
       } else {
         setUser(null);
       }
@@ -70,7 +87,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (session?.user) {
           setSession(session);
-          await fetchUserProfile(session.user.id);
+          const emailConfirmed = session.user.email_confirmed_at !== null;
+          
+          if (emailConfirmed) {
+            await fetchUserProfile(session.user.id);
+          } else {
+            setUser({
+              id: session.user.id,
+              email: session.user.email || '',
+              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
+              role: 'student',
+              emailConfirmed: false
+            });
+          }
         }
       } catch (error) {
         console.error('Error in getInitialSession:', error);
@@ -108,7 +137,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: data.role as UserRole,
           avatar: data.avatar || undefined,
           department: data.department || undefined,
-          studentId: data.student_id || undefined
+          studentId: data.student_id || undefined,
+          emailConfirmed: true
         });
       }
     } catch (error) {
@@ -116,7 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string; needsConfirmation?: boolean }> => {
     setIsLoading(true);
     
     try {
@@ -130,11 +160,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         console.error('Login error:', error);
         setIsLoading(false);
+        
+        // Handle specific error cases
+        if (error.message.includes('Email not confirmed')) {
+          return { 
+            success: false, 
+            error: 'Please check your email and click the confirmation link before logging in.',
+            needsConfirmation: true 
+          };
+        }
+        
+        if (error.message.includes('Invalid login credentials')) {
+          return { 
+            success: false, 
+            error: 'Invalid email or password. Please check your credentials and try again.' 
+          };
+        }
+        
         return { success: false, error: error.message };
       }
 
       if (data?.user) {
         console.log('Login successful for user:', data.user.id);
+        
+        // Check if email is confirmed
+        if (!data.user.email_confirmed_at) {
+          console.log('User email not confirmed yet');
+          setIsLoading(false);
+          return { 
+            success: false, 
+            error: 'Please check your email and click the confirmation link to complete your registration.',
+            needsConfirmation: true 
+          };
+        }
+        
         // Profile will be fetched automatically via onAuthStateChange
         return { success: true };
       }
@@ -148,7 +207,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (userData: Partial<User> & { password: string }): Promise<{ success: boolean; error?: string }> => {
+  const register = async (userData: Partial<User> & { password: string }): Promise<{ success: boolean; error?: string; needsConfirmation?: boolean }> => {
     setIsLoading(true);
     
     try {
@@ -164,7 +223,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             name: userData.name,
             role: userData.role || 'student',
             department: userData.department || null,
-            studentId: userData.studentId || null
+            studentId: userData.studentId || null,
+            // Store password (NOT RECOMMENDED for security reasons)
+            password: userData.password
           }
         }
       });
@@ -172,20 +233,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (authError) {
         console.error('Registration error:', authError);
         setIsLoading(false);
+        
+        // Handle specific error cases
+        if (authError.message.includes('User already registered')) {
+          return { 
+            success: false, 
+            error: 'An account with this email already exists. Please try logging in instead.' 
+          };
+        }
+        
+        if (authError.message.includes('already been registered')) {
+          return { 
+            success: false, 
+            error: 'This email is already registered. Please use a different email or try logging in.' 
+          };
+        }
+        
         return { success: false, error: authError.message };
       }
 
       if (authData?.user) {
         console.log('Registration successful for user:', authData.user.id);
         
-        // Wait a moment for the trigger to create the profile
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Try to fetch the profile to confirm it was created
-        await fetchUserProfile(authData.user.id);
-        
         setIsLoading(false);
-        return { success: true };
+        return { 
+          success: true, 
+          needsConfirmation: !authData.user.email_confirmed_at 
+        };
       }
 
       setIsLoading(false);
@@ -193,6 +267,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Registration error:', error);
       setIsLoading(false);
+      return { success: false, error: 'An unexpected error occurred' };
+    }
+  };
+
+  const resendConfirmation = async (email: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`
+        }
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Resend confirmation error:', error);
       return { success: false, error: 'An unexpected error occurred' };
     }
   };
@@ -205,7 +300,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, login, logout, register, isLoading }}>
+    <AuthContext.Provider value={{ user, session, login, logout, register, resendConfirmation, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
