@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
@@ -137,45 +138,122 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
 
   return (
     <div className="min-h-screen relative flex flex-col items-center justify-center p-4 overflow-hidden">
-      {/* Animated Moon Over Sea Background */}
+      {/* 3D Animated Night Sea Background */}
       <div className="absolute inset-0">
-        {/* Main background image */}
+        {/* Night Sky Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-blue-900 to-slate-800" />
+        
+        {/* Animated Stars */}
+        <div className="absolute inset-0">
+          {Array.from({ length: 50 }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-1 h-1 bg-white rounded-full opacity-70"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 60}%`,
+                animation: `twinkle ${2 + Math.random() * 3}s ease-in-out infinite`,
+                animationDelay: `${Math.random() * 2}s`
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Moon */}
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          className="absolute w-32 h-32 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-full shadow-2xl"
           style={{
-            backgroundImage: `url('/lovable-uploads/cb2a8afb-1d35-429d-8c69-ec88e0bb850b.png')`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center center'
+            top: '15%',
+            right: '20%',
+            boxShadow: '0 0 50px rgba(255, 255, 200, 0.4), inset -10px -10px 0 rgba(0, 0, 0, 0.1)',
+            animation: 'moonGlow 4s ease-in-out infinite alternate'
+          }}
+        >
+          {/* Moon craters */}
+          <div className="absolute w-3 h-3 bg-gray-300 rounded-full top-6 left-8 opacity-30" />
+          <div className="absolute w-2 h-2 bg-gray-300 rounded-full top-16 left-16 opacity-20" />
+          <div className="absolute w-4 h-4 bg-gray-300 rounded-full top-20 left-6 opacity-25" />
+        </div>
+
+        {/* Moon Reflection on Water */}
+        <div 
+          className="absolute bottom-0 left-0 w-full h-2/3"
+          style={{
+            background: 'linear-gradient(to bottom, transparent 0%, rgba(30, 58, 138, 0.3) 40%, rgba(15, 23, 42, 0.8) 100%)'
+          }}
+        >
+          {/* Animated Water Waves - Multiple Layers */}
+          <div className="absolute inset-0 overflow-hidden">
+            {/* Wave Layer 1 */}
+            <div 
+              className="absolute bottom-0 left-0 w-[200%] h-32 opacity-20"
+              style={{
+                background: 'repeating-linear-gradient(90deg, transparent, transparent 50px, rgba(59, 130, 246, 0.3) 50px, rgba(59, 130, 246, 0.3) 100px)',
+                animation: 'wave1 8s linear infinite'
+              }}
+            />
+            {/* Wave Layer 2 */}
+            <div 
+              className="absolute bottom-0 left-0 w-[200%] h-24 opacity-30"
+              style={{
+                background: 'repeating-linear-gradient(90deg, transparent, transparent 30px, rgba(29, 78, 216, 0.4) 30px, rgba(29, 78, 216, 0.4) 60px)',
+                animation: 'wave2 6s linear infinite reverse'
+              }}
+            />
+            {/* Wave Layer 3 */}
+            <div 
+              className="absolute bottom-0 left-0 w-[200%] h-16 opacity-40"
+              style={{
+                background: 'repeating-linear-gradient(90deg, transparent, transparent 20px, rgba(37, 99, 235, 0.5) 20px, rgba(37, 99, 235, 0.5) 40px)',
+                animation: 'wave3 4s linear infinite'
+              }}
+            />
+          </div>
+
+          {/* Moon Reflection */}
+          <div 
+            className="absolute w-16 h-64 opacity-60"
+            style={{
+              right: '20%',
+              bottom: '0',
+              background: 'linear-gradient(to bottom, rgba(255, 255, 200, 0.6) 0%, rgba(255, 255, 200, 0.3) 50%, transparent 100%)',
+              filter: 'blur(2px)',
+              animation: 'moonReflection 3s ease-in-out infinite alternate',
+              transform: 'skew(-2deg, 0)'
+            }}
+          />
+
+          {/* Shimmering Water Surface */}
+          <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-r from-transparent via-blue-300/10 to-transparent animate-pulse" />
+        </div>
+
+        {/* Floating Particles for Depth */}
+        <div className="absolute inset-0 pointer-events-none">
+          {Array.from({ length: 20 }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-1 h-1 bg-blue-200/30 rounded-full"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${60 + Math.random() * 40}%`,
+                animation: `float ${5 + Math.random() * 5}s ease-in-out infinite`,
+                animationDelay: `${Math.random() * 5}s`
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Subtle Mist Effect */}
+        <div 
+          className="absolute bottom-0 left-0 w-full h-1/3 opacity-20"
+          style={{
+            background: 'linear-gradient(to top, rgba(255, 255, 255, 0.1) 0%, transparent 100%)',
+            animation: 'mist 10s ease-in-out infinite alternate'
           }}
         />
-        
-        {/* Animated overlay for water movement */}
-        <div className="absolute inset-0 bg-gradient-to-t from-blue-900/40 via-transparent to-transparent animate-pulse" />
-        
-        {/* Moving water reflection effect */}
-        <div className="absolute bottom-0 left-0 w-full h-1/2 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-t from-white/5 via-white/2 to-transparent animate-bounce" 
-               style={{ animationDuration: '4s', animationDelay: '0s' }} />
-          <div className="absolute inset-0 bg-gradient-to-t from-white/3 via-white/1 to-transparent animate-bounce" 
-               style={{ animationDuration: '6s', animationDelay: '1s' }} />
-          <div className="absolute inset-0 bg-gradient-to-t from-white/4 via-white/1 to-transparent animate-bounce" 
-               style={{ animationDuration: '5s', animationDelay: '2s' }} />
-        </div>
-
-        {/* Floating particles for atmosphere */}
-        <div className="absolute inset-0">
-          <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-white/20 rounded-full animate-pulse" 
-               style={{ animationDuration: '3s' }} />
-          <div className="absolute top-1/3 right-1/3 w-1 h-1 bg-white/30 rounded-full animate-pulse" 
-               style={{ animationDuration: '4s', animationDelay: '1s' }} />
-          <div className="absolute top-1/2 left-1/2 w-1.5 h-1.5 bg-white/25 rounded-full animate-pulse" 
-               style={{ animationDuration: '5s', animationDelay: '2s' }} />
-          <div className="absolute top-2/3 right-1/4 w-1 h-1 bg-white/20 rounded-full animate-pulse" 
-               style={{ animationDuration: '3.5s', animationDelay: '0.5s' }} />
-        </div>
 
         {/* Dark overlay for better text readability */}
-        <div className="absolute inset-0 bg-black/30" />
+        <div className="absolute inset-0 bg-black/20" />
       </div>
 
       <div className="w-full max-w-md space-y-6 relative z-10">
@@ -396,6 +474,50 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
           </p>
         </div>
       </div>
+
+      {/* CSS Animations */}
+      <style jsx>{`
+        @keyframes twinkle {
+          0%, 100% { opacity: 0.3; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.2); }
+        }
+        
+        @keyframes moonGlow {
+          0% { box-shadow: 0 0 30px rgba(255, 255, 200, 0.3), inset -8px -8px 0 rgba(0, 0, 0, 0.1); }
+          100% { box-shadow: 0 0 60px rgba(255, 255, 200, 0.6), inset -12px -12px 0 rgba(0, 0, 0, 0.15); }
+        }
+        
+        @keyframes wave1 {
+          0% { transform: translateX(-50%); }
+          100% { transform: translateX(0%); }
+        }
+        
+        @keyframes wave2 {
+          0% { transform: translateX(-50%) translateY(10px); }
+          100% { transform: translateX(0%) translateY(0px); }
+        }
+        
+        @keyframes wave3 {
+          0% { transform: translateX(-50%) translateY(5px); }
+          100% { transform: translateX(0%) translateY(-5px); }
+        }
+        
+        @keyframes moonReflection {
+          0% { opacity: 0.4; transform: skew(-1deg, 0) scale(1); }
+          100% { opacity: 0.7; transform: skew(-3deg, 0) scale(1.1); }
+        }
+        
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) translateX(0px); opacity: 0.3; }
+          33% { transform: translateY(-20px) translateX(10px); opacity: 0.7; }
+          66% { transform: translateY(-10px) translateX(-5px); opacity: 0.5; }
+        }
+        
+        @keyframes mist {
+          0% { opacity: 0.1; transform: translateX(0px); }
+          100% { opacity: 0.3; transform: translateX(20px); }
+        }
+      `}</style>
     </div>
   );
 };
