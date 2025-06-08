@@ -47,6 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.id);
+      
       setSession(session);
       
       if (session?.user) {
@@ -55,8 +56,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Email confirmed:', emailConfirmed);
         
         if (emailConfirmed) {
-          // Fetch user profile when authenticated and email is confirmed
-          await fetchUserProfile(session.user.id);
+          // Use setTimeout to prevent blocking the auth state change
+          setTimeout(() => {
+            fetchUserProfile(session.user.id);
+          }, 0);
         } else {
           // Set user with limited info if email not confirmed
           setUser({
@@ -66,15 +69,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             role: 'student',
             emailConfirmed: false
           });
+          setIsLoading(false);
         }
       } else {
         setUser(null);
+        setIsLoading(false);
       }
-      setIsLoading(false);
     });
 
     // Check for existing session
-    const getInitialSession = async () => {
+    const initializeAuth = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         console.log('Initial session check:', session?.user?.id, error);
@@ -85,30 +89,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
         
-        if (session?.user) {
-          setSession(session);
-          const emailConfirmed = session.user.email_confirmed_at !== null;
-          
-          if (emailConfirmed) {
-            await fetchUserProfile(session.user.id);
-          } else {
-            setUser({
-              id: session.user.id,
-              email: session.user.email || '',
-              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
-              role: 'student',
-              emailConfirmed: false
-            });
-          }
+        // The auth state change listener will handle the session
+        if (!session) {
+          setIsLoading(false);
         }
       } catch (error) {
-        console.error('Error in getInitialSession:', error);
-      } finally {
+        console.error('Error in initializeAuth:', error);
         setIsLoading(false);
       }
     };
 
-    getInitialSession();
+    initializeAuth();
 
     return () => subscription.unsubscribe();
   }, []);
@@ -121,10 +112,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching user profile:', error);
+        setIsLoading(false);
         return;
       }
 
@@ -140,9 +132,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           studentId: data.student_id || undefined,
           emailConfirmed: true
         });
+      } else {
+        console.log('No profile found, user might need to complete registration');
+        // Set basic user info even if no profile exists
+        const session = await supabase.auth.getSession();
+        if (session.data.session?.user) {
+          setUser({
+            id: session.data.session.user.id,
+            email: session.data.session.user.email || '',
+            name: session.data.session.user.user_metadata?.name || session.data.session.user.email?.split('@')[0] || '',
+            role: 'student',
+            emailConfirmed: true
+          });
+        }
       }
+      setIsLoading(false);
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
+      setIsLoading(false);
     }
   };
 
@@ -186,6 +193,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Check if email is confirmed
         if (!data.user.email_confirmed_at) {
           console.log('User email not confirmed yet');
+          await supabase.auth.signOut(); // Sign out if email not confirmed
           setIsLoading(false);
           return { 
             success: false, 
@@ -194,7 +202,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
         }
         
-        // Profile will be fetched automatically via onAuthStateChange
+        // Auth state change listener will handle setting user and session
         return { success: true };
       }
 
@@ -213,7 +221,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Attempting registration for:', userData.email);
       
-      // First, sign up the user with metadata
+      // First, sign up the user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: userData.email!,
         password: userData.password,
@@ -223,9 +231,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             name: userData.name,
             role: userData.role || 'student',
             department: userData.department || null,
-            studentId: userData.studentId || null,
-            // Store password (NOT RECOMMENDED for security reasons)
-            password: userData.password
+            studentId: userData.studentId || null
           }
         }
       });
@@ -235,17 +241,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false);
         
         // Handle specific error cases
-        if (authError.message.includes('User already registered')) {
+        if (authError.message.includes('User already registered') || authError.message.includes('already been registered')) {
           return { 
             success: false, 
             error: 'An account with this email already exists. Please try logging in instead.' 
-          };
-        }
-        
-        if (authError.message.includes('already been registered')) {
-          return { 
-            success: false, 
-            error: 'This email is already registered. Please use a different email or try logging in.' 
           };
         }
         
@@ -294,9 +293,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     console.log('Logging out user');
+    setIsLoading(true);
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
+    setIsLoading(false);
   };
 
   return (

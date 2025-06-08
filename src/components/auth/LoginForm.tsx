@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
@@ -6,8 +5,7 @@ import { Input } from '../ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription } from '../ui/alert';
-import { Loading } from '../ui/loading';
-import { GraduationCap, Mail, Lock, AlertCircle, RefreshCw, BookOpen, Trophy, Users, Check } from 'lucide-react';
+import { GraduationCap, Mail, Lock, AlertCircle, RefreshCw, BookOpen, Trophy, Users, Check, Loader2 } from 'lucide-react';
 
 interface LoginFormProps {
   onSwitchToRegister: () => void;
@@ -22,6 +20,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
   const [captchaAnswer, setCaptchaAnswer] = useState(0);
   const [error, setError] = useState('');
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { login, resendConfirmation, isLoading } = useAuth();
 
   // Generate more complex captcha
@@ -93,9 +92,12 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
       return;
     }
 
+    setIsSubmitting(true);
     console.log('Attempting login with email:', email);
     
     const result = await login(email, password);
+    setIsSubmitting(false);
+    
     if (!result.success) {
       setError(result.error || 'Invalid email or password');
       generateCaptcha();
@@ -109,12 +111,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
     }
   };
 
-  // Show loading overlay during login
-  if (isLoading) {
+  // Show loading overlay only during initial auth check, not during login
+  if (isLoading && !isSubmitting) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-lg">
-          <Loading size="lg" text="Signing you in..." />
+        <div className="bg-white p-8 rounded-lg shadow-lg flex items-center space-x-4">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          <p className="text-lg font-medium">Loading...</p>
         </div>
       </div>
     );
@@ -166,7 +169,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 bg-gray-900 border-yellow-500/30 text-white placeholder-gray-400 focus:border-yellow-500 focus:ring-yellow-500"
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                   />
                 </div>
               </div>
@@ -182,7 +185,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 bg-gray-900 border-yellow-500/30 text-white placeholder-gray-400 focus:border-yellow-500 focus:ring-yellow-500"
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                   />
                 </div>
               </div>
@@ -200,7 +203,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
                     value={captcha}
                     onChange={(e) => setCaptcha(e.target.value)}
                     className="w-24 bg-gray-900 border-yellow-500/30 text-white placeholder-gray-400 focus:border-yellow-500 focus:ring-yellow-500"
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                   />
                   <Button 
                     type="button" 
@@ -208,6 +211,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
                     size="sm"
                     onClick={generateCaptcha}
                     className="border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
+                    disabled={isSubmitting}
                   >
                     <RefreshCw className="w-4 h-4" />
                   </Button>
@@ -231,6 +235,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
                       variant="link" 
                       onClick={handleResendConfirmation}
                       className="text-yellow-300 hover:text-yellow-100 p-0 ml-2 h-auto"
+                      disabled={isSubmitting}
                     >
                       Resend confirmation email
                     </Button>
@@ -241,9 +246,16 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
               <Button 
                 type="submit" 
                 className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700 text-black font-semibold shadow-lg" 
-                disabled={isLoading}
+                disabled={isSubmitting}
               >
-                {isLoading ? 'Signing in...' : 'Sign In'}
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  'Sign In'
+                )}
               </Button>
             </form>
 
@@ -252,6 +264,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
                 type="button"
                 onClick={onForgotPassword}
                 className="text-yellow-400 hover:text-yellow-300 text-sm underline"
+                disabled={isSubmitting}
               >
                 Forgot your password?
               </button>
@@ -260,6 +273,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
                   type="button"
                   onClick={onSwitchToRegister}
                   className="text-yellow-400 hover:text-yellow-300 text-sm"
+                  disabled={isSubmitting}
                 >
                   Don't have an account? Register here
                 </button>
