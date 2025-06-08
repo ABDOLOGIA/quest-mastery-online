@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
@@ -113,7 +112,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
         }
       } else {
         console.log('Login successful, user should be redirected');
-        // Don't set loading to false here - let the auth context handle it
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -121,7 +119,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
       generateCaptcha();
       setCaptcha('');
     } finally {
-      // Only set isSubmitting to false, not isLoading
       setIsSubmitting(false);
     }
   };
@@ -139,40 +136,69 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Modern Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-20 left-20 w-32 h-32 bg-yellow-400 opacity-20 rounded-full animate-bounce"></div>
-        <div className="absolute top-40 right-32 w-24 h-24 bg-yellow-500 opacity-30 rounded-lg transform rotate-45 animate-pulse"></div>
-        <div className="absolute bottom-32 left-40 w-40 h-40 bg-amber-400 opacity-20 rounded-full animate-pulse"></div>
-        <div className="absolute bottom-20 right-20 w-28 h-28 bg-yellow-600 opacity-25 rounded-lg transform -rotate-12 animate-bounce"></div>
+    <div className="min-h-screen relative flex flex-col items-center justify-center p-4 overflow-hidden">
+      {/* Animated Moon Over Sea Background */}
+      <div className="absolute inset-0">
+        {/* Main background image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: `url('/lovable-uploads/cb2a8afb-1d35-429d-8c69-ec88e0bb850b.png')`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center center'
+          }}
+        />
         
-        <div className="absolute inset-0 opacity-10" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23fbbf24' fill-opacity='0.3'%3E%3Ccircle cx='20' cy='20' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-        }}></div>
+        {/* Animated overlay for water movement */}
+        <div className="absolute inset-0 bg-gradient-to-t from-blue-900/40 via-transparent to-transparent animate-pulse" />
+        
+        {/* Moving water reflection effect */}
+        <div className="absolute bottom-0 left-0 w-full h-1/2 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-t from-white/5 via-white/2 to-transparent animate-bounce" 
+               style={{ animationDuration: '4s', animationDelay: '0s' }} />
+          <div className="absolute inset-0 bg-gradient-to-t from-white/3 via-white/1 to-transparent animate-bounce" 
+               style={{ animationDuration: '6s', animationDelay: '1s' }} />
+          <div className="absolute inset-0 bg-gradient-to-t from-white/4 via-white/1 to-transparent animate-bounce" 
+               style={{ animationDuration: '5s', animationDelay: '2s' }} />
+        </div>
+
+        {/* Floating particles for atmosphere */}
+        <div className="absolute inset-0">
+          <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-white/20 rounded-full animate-pulse" 
+               style={{ animationDuration: '3s' }} />
+          <div className="absolute top-1/3 right-1/3 w-1 h-1 bg-white/30 rounded-full animate-pulse" 
+               style={{ animationDuration: '4s', animationDelay: '1s' }} />
+          <div className="absolute top-1/2 left-1/2 w-1.5 h-1.5 bg-white/25 rounded-full animate-pulse" 
+               style={{ animationDuration: '5s', animationDelay: '2s' }} />
+          <div className="absolute top-2/3 right-1/4 w-1 h-1 bg-white/20 rounded-full animate-pulse" 
+               style={{ animationDuration: '3.5s', animationDelay: '0.5s' }} />
+        </div>
+
+        {/* Dark overlay for better text readability */}
+        <div className="absolute inset-0 bg-black/30" />
       </div>
 
       <div className="w-full max-w-md space-y-6 relative z-10">
         <div className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="w-20 h-20 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-2xl flex items-center justify-center shadow-lg">
+            <div className="w-20 h-20 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-2xl flex items-center justify-center shadow-lg backdrop-blur-sm">
               <GraduationCap className="w-10 h-10 text-black" />
             </div>
           </div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent mb-2">
             YourExam.net
           </h1>
-          <p className="text-gray-300 text-lg">Sign in to your account</p>
+          <p className="text-gray-200 text-lg">Sign in to your account</p>
         </div>
 
-        <Card className="shadow-xl border border-yellow-500/20 bg-black/80 backdrop-blur-lg">
+        <Card className="shadow-xl border border-yellow-500/20 bg-black/60 backdrop-blur-lg">
           <CardHeader>
             <CardTitle className="text-center text-yellow-400">Login</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-gray-300">Email or Student ID</Label>
+                <Label htmlFor="email" className="text-gray-200">Email or Student ID</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-yellow-500" />
                   <Input
@@ -181,14 +207,14 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
                     placeholder="Enter your email or student ID"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 bg-gray-900 border-yellow-500/30 text-white placeholder-gray-400 focus:border-yellow-500 focus:ring-yellow-500"
+                    className="pl-10 bg-gray-900/80 border-yellow-500/30 text-white placeholder-gray-400 focus:border-yellow-500 focus:ring-yellow-500"
                     disabled={isSubmitting}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-gray-300">Password</Label>
+                <Label htmlFor="password" className="text-gray-200">Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-yellow-500" />
                   <Input
@@ -197,14 +223,14 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 bg-gray-900 border-yellow-500/30 text-white placeholder-gray-400 focus:border-yellow-500 focus:ring-yellow-500"
+                    className="pl-10 bg-gray-900/80 border-yellow-500/30 text-white placeholder-gray-400 focus:border-yellow-500 focus:ring-yellow-500"
                     disabled={isSubmitting}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="captcha" className="text-gray-300">Security Check</Label>
+                <Label htmlFor="captcha" className="text-gray-200">Security Check</Label>
                 <div className="flex items-center space-x-3">
                   <div className="bg-gradient-to-br from-yellow-500/20 to-amber-500/20 border border-yellow-500/30 p-3 rounded font-mono text-lg text-yellow-400 font-bold flex-1 text-center">
                     {captchaQuestion}
@@ -215,7 +241,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
                     placeholder="Answer"
                     value={captcha}
                     onChange={(e) => setCaptcha(e.target.value)}
-                    className="w-24 bg-gray-900 border-yellow-500/30 text-white placeholder-gray-400 focus:border-yellow-500 focus:ring-yellow-500"
+                    className="w-24 bg-gray-900/80 border-yellow-500/30 text-white placeholder-gray-400 focus:border-yellow-500 focus:ring-yellow-500"
                     disabled={isSubmitting}
                   />
                   <Button 
@@ -306,14 +332,14 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
       {/* Features Section */}
       <div className="w-full max-w-6xl mt-12 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-4">
-          <div className="bg-black/80 backdrop-blur-lg border border-yellow-500/20 rounded-lg p-6 shadow-lg">
+          <div className="bg-black/60 backdrop-blur-lg border border-yellow-500/20 rounded-lg p-6 shadow-lg">
             <div className="flex items-center mb-4">
               <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-full flex items-center justify-center mr-4">
                 <BookOpen className="w-6 h-6 text-black" />
               </div>
               <h3 className="text-xl font-bold text-yellow-400">MASTER ESSENTIAL SKILLS</h3>
             </div>
-            <div className="space-y-3 text-gray-300">
+            <div className="space-y-3 text-gray-200">
               <div className="flex items-start">
                 <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
                 <p className="text-sm">Focuses on building <span className="text-yellow-400 font-semibold">strong students</span> who are able to face the world</p>
@@ -325,14 +351,14 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
             </div>
           </div>
 
-          <div className="bg-black/80 backdrop-blur-lg border border-yellow-500/20 rounded-lg p-6 shadow-lg">
+          <div className="bg-black/60 backdrop-blur-lg border border-yellow-500/20 rounded-lg p-6 shadow-lg">
             <div className="flex items-center mb-4">
               <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-full flex items-center justify-center mr-4">
                 <Users className="w-6 h-6 text-black" />
               </div>
               <h3 className="text-xl font-bold text-yellow-400">JOIN YOUR REAL WORLD EXCELLENCE</h3>
             </div>
-            <div className="space-y-3 text-gray-300">
+            <div className="space-y-3 text-gray-200">
               <div className="flex items-start">
                 <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
                 <p className="text-sm">Put all your <span className="text-yellow-400 font-semibold">knowledge here</span></p>
@@ -344,14 +370,14 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
             </div>
           </div>
 
-          <div className="bg-black/80 backdrop-blur-lg border border-yellow-500/20 rounded-lg p-6 shadow-lg">
+          <div className="bg-black/60 backdrop-blur-lg border border-yellow-500/20 rounded-lg p-6 shadow-lg">
             <div className="flex items-center mb-4">
               <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-full flex items-center justify-center mr-4">
                 <Trophy className="w-6 h-6 text-black" />
               </div>
               <h3 className="text-xl font-bold text-yellow-400">ACCESS TO SUCCESS</h3>
             </div>
-            <div className="space-y-3 text-gray-300">
+            <div className="space-y-3 text-gray-200">
               <div className="flex items-start">
                 <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
                 <p className="text-sm">In order to be successful you need to <span className="text-yellow-400 font-semibold">pass a lot of exams</span> in your life</p>
@@ -365,7 +391,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
         </div>
 
         <div className="text-center mt-8">
-          <p className="text-gray-300 text-lg mb-4">
+          <p className="text-gray-200 text-lg mb-4">
             That's exactly what you can do, join <span className="text-yellow-400 font-bold">YourExam.net</span> and solve your <span className="text-yellow-400 font-bold">PROBLEMS</span>
           </p>
         </div>
