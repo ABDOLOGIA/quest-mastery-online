@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
@@ -21,9 +22,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
   const [error, setError] = useState('');
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [resendingConfirmation, setResendingConfirmation] = useState(false);
   const { login, resendConfirmation, isLoading } = useAuth();
 
-  // Generate more complex captcha
+  // Generate captcha
   React.useEffect(() => {
     generateCaptcha();
   }, []);
@@ -65,7 +67,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
       return;
     }
 
+    setResendingConfirmation(true);
     const result = await resendConfirmation(email);
+    setResendingConfirmation(false);
+    
     if (result.success) {
       setError('');
       setNeedsConfirmation(false);
@@ -95,23 +100,33 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
     setIsSubmitting(true);
     console.log('Attempting login with email:', email);
     
-    const result = await login(email, password);
-    setIsSubmitting(false);
-    
-    if (!result.success) {
-      setError(result.error || 'Invalid email or password');
+    try {
+      const result = await login(email, password);
+      
+      if (!result.success) {
+        setError(result.error || 'Invalid email or password');
+        generateCaptcha();
+        setCaptcha('');
+        
+        if (result.needsConfirmation) {
+          setNeedsConfirmation(true);
+        }
+      } else {
+        console.log('Login successful, user should be redirected');
+        // Don't set loading to false here - let the auth context handle it
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('An unexpected error occurred');
       generateCaptcha();
       setCaptcha('');
-      
-      if (result.needsConfirmation) {
-        setNeedsConfirmation(true);
-      }
-    } else {
-      console.log('Login successful, user should be redirected');
+    } finally {
+      // Only set isSubmitting to false, not isLoading
+      setIsSubmitting(false);
     }
   };
 
-  // Show loading overlay only during initial auth check, not during login
+  // Show loading overlay during initial auth check
   if (isLoading && !isSubmitting) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center">
@@ -127,13 +142,11 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 flex flex-col items-center justify-center p-4 relative overflow-hidden">
       {/* Modern Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
-        {/* Floating geometric shapes */}
         <div className="absolute top-20 left-20 w-32 h-32 bg-yellow-400 opacity-20 rounded-full animate-bounce"></div>
         <div className="absolute top-40 right-32 w-24 h-24 bg-yellow-500 opacity-30 rounded-lg transform rotate-45 animate-pulse"></div>
         <div className="absolute bottom-32 left-40 w-40 h-40 bg-amber-400 opacity-20 rounded-full animate-pulse"></div>
         <div className="absolute bottom-20 right-20 w-28 h-28 bg-yellow-600 opacity-25 rounded-lg transform -rotate-12 animate-bounce"></div>
         
-        {/* Grid pattern */}
         <div className="absolute inset-0 opacity-10" style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23fbbf24' fill-opacity='0.3'%3E%3Ccircle cx='20' cy='20' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
         }}></div>
@@ -235,9 +248,16 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
                       variant="link" 
                       onClick={handleResendConfirmation}
                       className="text-yellow-300 hover:text-yellow-100 p-0 ml-2 h-auto"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || resendingConfirmation}
                     >
-                      Resend confirmation email
+                      {resendingConfirmation ? (
+                        <>
+                          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        'Resend confirmation email'
+                      )}
                     </Button>
                   </AlertDescription>
                 </Alert>
