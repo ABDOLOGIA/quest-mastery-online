@@ -120,7 +120,9 @@ const ExamCreationForm: React.FC<ExamCreationFormProps> = ({ onExamCreated, onCa
       await createExam({
         ...formData,
         questions,
-        id: ''
+        createdBy: 'current-user', // This should be set by the backend
+        allowReview: true,
+        shuffleQuestions: false
       });
 
       toast({
