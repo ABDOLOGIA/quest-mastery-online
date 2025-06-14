@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useProfileOperations } from '../../hooks/useProfileOperations';
@@ -9,6 +10,7 @@ import { Alert, AlertDescription } from '../ui/alert';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { User as UserIcon, Mail, GraduationCap, Hash, AlertCircle, Check, Loader2, Briefcase, IdCard } from 'lucide-react';
+import { toast } from '../ui/use-toast';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -101,19 +103,51 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     setError('');
     setSuccess('');
 
-    const result = await updateUserProfile(user.id, {
-      name: editForm.name,
-      studentId: editForm.studentId || undefined,
-      avatar: editForm.avatar || undefined,
-      department: editForm.department || undefined
-    });
+    try {
+      console.log('Saving profile updates:', editForm);
+      
+      const result = await updateUserProfile(user.id, {
+        name: editForm.name.trim(),
+        studentId: editForm.studentId.trim() || undefined,
+        avatar: editForm.avatar.trim() || undefined,
+        department: editForm.department.trim() || undefined
+      });
 
-    if (result.success) {
-      setSuccess('Profile updated successfully');
-      setIsEditing(false);
-      await loadUserData();
-    } else {
-      setError(result.error || 'Failed to update profile');
+      if (result.success) {
+        // Show success message
+        toast({
+          title: "Profile Updated",
+          description: "Your profile has been updated successfully.",
+        });
+        
+        setSuccess('Profile updated successfully');
+        setIsEditing(false);
+        
+        // Reload the user data to reflect changes
+        await loadUserData();
+        
+        // Clear success message after 3 seconds
+        setTimeout(() => {
+          setSuccess('');
+        }, 3000);
+      } else {
+        const errorMessage = result.error || 'Failed to update profile';
+        setError(errorMessage);
+        toast({
+          title: "Update Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      const errorMessage = 'An unexpected error occurred while updating your profile';
+      setError(errorMessage);
+      toast({
+        title: "Update Failed", 
+        description: errorMessage,
+        variant: "destructive",
+      });
     }
 
     setIsLoading(false);
@@ -165,7 +199,9 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
         {isLoading && (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-            <span className="ml-2 text-gray-600">Loading profile...</span>
+            <span className="ml-2 text-gray-600">
+              {isEditing ? 'Saving profile...' : 'Loading profile...'}
+            </span>
           </div>
         )}
 
@@ -193,14 +229,16 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
             {/* Avatar and Basic Info */}
             <div className="flex flex-col items-center space-y-4">
               <Avatar className="w-20 h-20">
-                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarImage src={isEditing ? editForm.avatar : user.avatar} alt={user.name} />
                 <AvatarFallback className="text-lg bg-gray-200">
-                  {getInitials(user.name)}
+                  {getInitials(isEditing ? editForm.name : user.name)}
                 </AvatarFallback>
               </Avatar>
               
               <div className="text-center">
-                <h3 className="text-xl font-semibold text-gray-900">{user.name}</h3>
+                <h3 className="text-xl font-semibold text-gray-900">
+                  {isEditing ? editForm.name : user.name}
+                </h3>
                 <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium mt-1 ${getRoleColor(user.role)}`}>
                   {getRoleDisplay(user.role)}
                 </span>
@@ -221,6 +259,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                         onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
                         className="pl-10"
                         placeholder="Enter full name"
+                        required
                       />
                     </div>
                   </div>
@@ -337,7 +376,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                   <>
                     <Button 
                       onClick={handleSave}
-                      disabled={isLoading}
+                      disabled={isLoading || !editForm.name.trim()}
                       className="flex-1 bg-blue-600 hover:bg-blue-700"
                     >
                       {isLoading ? (
