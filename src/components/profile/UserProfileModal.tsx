@@ -1,13 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { useProfileOperations } from '../../hooks/useProfileOperations';
-import { useAuth } from '../../contexts/AuthContext';
+import { useExtendedAuth } from '../../contexts/ExtendedAuthContext';
 import type { User, UserRole } from '../../types/auth';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Label } from '../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
@@ -39,8 +36,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     avatar: ''
   });
 
-  const { getUserProfile, updateUserProfile } = useProfileOperations();
-  const { user: currentUser } = useAuth();
+  const { getUserProfile, updateUserProfile, user: currentUser } = useExtendedAuth();
 
   useEffect(() => {
     if (isOpen && userId) {
