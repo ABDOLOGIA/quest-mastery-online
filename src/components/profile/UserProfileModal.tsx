@@ -8,7 +8,7 @@ import { Label } from '../ui/label';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { User as UserIcon, Mail, GraduationCap, Hash, AlertCircle, Check, Loader2 } from 'lucide-react';
+import { User as UserIcon, Mail, GraduationCap, Hash, AlertCircle, Check, Loader2, Briefcase, IdCard } from 'lucide-react';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -32,7 +32,8 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const [editForm, setEditForm] = useState({
     name: '',
     studentId: '',
-    avatar: ''
+    avatar: '',
+    department: ''
   });
 
   const { getUserProfile, updateUserProfile } = useProfileOperations();
@@ -48,13 +49,17 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     setError('');
     
     try {
+      console.log('Loading profile for userId:', userId);
       const profile = await getUserProfile(userId);
+      console.log('Profile loaded:', profile);
+      
       if (profile) {
         setUser(profile);
         setEditForm({
           name: profile.name,
           studentId: profile.studentId || '',
-          avatar: profile.avatar || ''
+          avatar: profile.avatar || '',
+          department: profile.department || ''
         });
       } else {
         setError('User profile not found');
@@ -77,7 +82,8 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     const result = await updateUserProfile(user.id, {
       name: editForm.name,
       studentId: editForm.studentId || undefined,
-      avatar: editForm.avatar || undefined
+      avatar: editForm.avatar || undefined,
+      department: editForm.department || undefined
     });
 
     if (result.success) {
@@ -96,7 +102,8 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
       setEditForm({
         name: user.name,
         studentId: user.studentId || '',
-        avatar: user.avatar || ''
+        avatar: user.avatar || '',
+        department: user.department || ''
       });
     }
     setIsEditing(false);
@@ -180,7 +187,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     <div className="space-y-2">
                       <Label htmlFor="studentId" className="text-sm font-medium text-gray-700">Student ID</Label>
                       <div className="relative">
-                        <GraduationCap className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <IdCard className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                         <Input
                           id="studentId"
                           value={editForm.studentId}
@@ -193,6 +200,20 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                   )}
 
                   <div className="space-y-2">
+                    <Label htmlFor="department" className="text-sm font-medium text-gray-700">Department</Label>
+                    <div className="relative">
+                      <Briefcase className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="department"
+                        value={editForm.department}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, department: e.target.value }))}
+                        className="pl-10"
+                        placeholder="Enter department"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
                     <Label htmlFor="avatar" className="text-sm font-medium text-gray-700">Avatar URL</Label>
                     <Input
                       id="avatar"
@@ -203,34 +224,52 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                   </div>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div className="flex items-start space-x-3 py-2">
-                    <UserIcon className="h-5 w-5 text-gray-400 mt-0.5" />
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <UserIcon className="h-5 w-5 text-gray-500" />
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">{user.name}</p>
                       <p className="text-xs text-gray-500">Full Name</p>
                     </div>
                   </div>
 
-                  <div className="flex items-start space-x-3 py-2">
-                    <Hash className="h-5 w-5 text-gray-400 mt-0.5" />
+                  <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <Hash className="h-5 w-5 text-gray-500" />
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900 font-mono">{user.id}</p>
                       <p className="text-xs text-gray-500">User ID</p>
                     </div>
                   </div>
 
-                  <div className="flex items-start space-x-3 py-2">
-                    <Mail className="h-5 w-5 text-gray-400 mt-0.5" />
+                  <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <Mail className="h-5 w-5 text-gray-500" />
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">{user.email}</p>
                       <p className="text-xs text-gray-500">Email Address</p>
                     </div>
                   </div>
 
+                  <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <IdCard className="h-5 w-5 text-gray-500" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">{getRoleDisplay(user.role)}</p>
+                      <p className="text-xs text-gray-500">Role</p>
+                    </div>
+                  </div>
+
+                  {user.department && (
+                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                      <Briefcase className="h-5 w-5 text-gray-500" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">{user.department}</p>
+                        <p className="text-xs text-gray-500">Department</p>
+                      </div>
+                    </div>
+                  )}
+
                   {user.role === 'student' && user.studentId && (
-                    <div className="flex items-start space-x-3 py-2">
-                      <GraduationCap className="h-5 w-5 text-gray-400 mt-0.5" />
+                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                      <GraduationCap className="h-5 w-5 text-gray-500" />
                       <div className="flex-1">
                         <p className="text-sm font-medium text-gray-900">{user.studentId}</p>
                         <p className="text-xs text-gray-500">Student ID</p>
@@ -299,7 +338,15 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
         {!isLoading && !user && (
           <div className="text-center py-8">
-            <p className="text-gray-500">User profile not found</p>
+            <div className="flex flex-col items-center space-y-4">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                <UserIcon className="w-8 h-8 text-gray-400" />
+              </div>
+              <div>
+                <p className="text-gray-900 font-medium">User profile not found</p>
+                <p className="text-gray-500 text-sm">The requested user profile could not be loaded.</p>
+              </div>
+            </div>
           </div>
         )}
       </DialogContent>
