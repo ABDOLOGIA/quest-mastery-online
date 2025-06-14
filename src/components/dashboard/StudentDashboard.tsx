@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useExam } from '../../contexts/ExamContext';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
@@ -13,13 +14,35 @@ import {
   Calendar,
   TrendingUp,
   BookOpen,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 
 const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
-  const { exams, attempts, hasSubmittedExam, startExam } = useExam();
+  const { exams, attempts, hasSubmittedExam, startExam, loadExams, isLoading } = useExam();
   const [activeTab, setActiveTab] = useState('overview');
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Auto-refresh exams when component mounts and periodically
+  useEffect(() => {
+    if (user) {
+      loadExams();
+      
+      // Set up periodic refresh every 30 seconds
+      const interval = setInterval(() => {
+        loadExams();
+      }, 30000);
+
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadExams();
+    setRefreshing(false);
+  };
 
   // Filter exams based on current time and submission status
   const now = new Date();
@@ -99,6 +122,20 @@ const StudentDashboard: React.FC = () => {
 
   const renderOverview = () => (
     <div className="space-y-6">
+      {/* Refresh Button */}
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">Dashboard Overview</h3>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleRefresh}
+          disabled={refreshing || isLoading}
+        >
+          <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      </div>
+
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => {
@@ -193,13 +230,29 @@ const StudentDashboard: React.FC = () => {
   const renderAvailableExams = () => (
     <Card className="border-slate-200">
       <CardHeader>
-        <CardTitle className="flex items-center text-slate-800">
-          <FileText className="w-5 h-5 mr-2 text-blue-600" />
-          Available Exams
+        <CardTitle className="flex items-center justify-between text-slate-800">
+          <div className="flex items-center">
+            <FileText className="w-5 h-5 mr-2 text-blue-600" />
+            Available Exams
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh}
+            disabled={refreshing || isLoading}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {availableExams.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center py-8">
+            <RefreshCw className="w-8 h-8 text-slate-400 mx-auto mb-3 animate-spin" />
+            <p className="text-slate-500">Loading exams...</p>
+          </div>
+        ) : availableExams.length === 0 ? (
           <div className="text-center py-8">
             <Clock className="w-12 h-12 text-slate-400 mx-auto mb-3" />
             <p className="text-slate-500">No exams available at the moment</p>

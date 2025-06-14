@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
@@ -127,6 +126,8 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
+      console.log('Loaded exams data:', data);
+
       if (data) {
         const formattedExams: Exam[] = data.map(exam => ({
           id: exam.id,
@@ -154,6 +155,7 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
           })) || []
         }));
 
+        console.log('Formatted exams:', formattedExams);
         setExams(formattedExams);
       }
     } catch (error) {
@@ -200,9 +202,14 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const createExam = async (examData: Omit<Exam, 'id'>) => {
-    if (!user || (user.role !== 'teacher' && user.role !== 'admin')) return;
+    if (!user || (user.role !== 'teacher' && user.role !== 'admin')) {
+      console.error('Unauthorized: Only teachers and admins can create exams');
+      return;
+    }
 
     try {
+      console.log('Creating exam with data:', examData);
+
       // First, get or create the subject
       let subjectId;
       const { data: existingSubject } = await supabase
@@ -213,7 +220,9 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (existingSubject) {
         subjectId = existingSubject.id;
+        console.log('Using existing subject:', subjectId);
       } else {
+        console.log('Creating new subject:', examData.subject);
         const { data: newSubject, error: subjectError } = await supabase
           .from('subjects')
           .insert({ name: examData.subject })
@@ -222,32 +231,39 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (subjectError) {
           console.error('Error creating subject:', subjectError);
-          return;
+          throw subjectError;
         }
         subjectId = newSubject.id;
+        console.log('Created new subject:', subjectId);
       }
 
       // Create the exam
+      const examToInsert = {
+        title: examData.title,
+        description: examData.description,
+        subject_id: subjectId,
+        teacher_id: user.id,
+        duration_minutes: examData.duration,
+        total_marks: examData.totalPoints,
+        start_time: examData.alwaysAvailable ? null : examData.startTime.toISOString(),
+        end_time: examData.alwaysAvailable ? null : examData.endTime.toISOString(),
+        is_published: examData.isActive
+      };
+
+      console.log('Inserting exam:', examToInsert);
+
       const { data: examResult, error: examError } = await supabase
         .from('exams')
-        .insert({
-          title: examData.title,
-          description: examData.description,
-          subject_id: subjectId,
-          teacher_id: user.id,
-          duration_minutes: examData.duration,
-          total_marks: examData.totalPoints,
-          start_time: examData.startTime.toISOString(),
-          end_time: examData.endTime.toISOString(),
-          is_published: examData.isActive
-        })
+        .insert(examToInsert)
         .select()
         .single();
 
       if (examError) {
         console.error('Error creating exam:', examError);
-        return;
+        throw examError;
       }
+
+      console.log('Exam created successfully:', examResult);
 
       // Create questions
       if (examData.questions.length > 0) {
@@ -263,19 +279,26 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
           order_number: index + 1
         }));
 
+        console.log('Creating questions:', questionsData);
+
         const { error: questionsError } = await supabase
           .from('questions')
           .insert(questionsData);
 
         if (questionsError) {
           console.error('Error creating questions:', questionsError);
+          throw questionsError;
         }
+
+        console.log('Questions created successfully');
       }
 
       // Reload exams to get the new one
       await loadExams();
+      console.log('Exam creation completed successfully');
     } catch (error) {
       console.error('Error in createExam:', error);
+      throw error;
     }
   };
 

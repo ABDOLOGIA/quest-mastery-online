@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useExam } from '../../contexts/ExamContext';
@@ -9,6 +8,7 @@ import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import QuestionManagement from '../teacher/QuestionManagement';
 import ExamCreationForm from '../teacher/ExamCreationForm';
+import { useToast } from '../ui/use-toast';
 import { 
   FileText, 
   Users, 
@@ -31,6 +31,7 @@ interface TeacherStats {
 const TeacherDashboard: React.FC = () => {
   const { user } = useAuth();
   const { exams, loadExams, isLoading } = useExam();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState<TeacherStats>({
     studentCount: 0,
@@ -118,10 +119,24 @@ const TeacherDashboard: React.FC = () => {
     }
   ];
 
-  const handleExamCreated = () => {
-    setShowExamForm(false);
-    loadExams();
-    loadTeacherStats();
+  const handleExamCreated = async () => {
+    try {
+      setShowExamForm(false);
+      await loadExams();
+      await loadTeacherStats();
+      
+      toast({
+        title: "Success!",
+        description: "Exam created successfully and is now available to students.",
+      });
+    } catch (error) {
+      console.error('Error after exam creation:', error);
+      toast({
+        title: "Error",
+        description: "There was a problem refreshing the exam list.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
