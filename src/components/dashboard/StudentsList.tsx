@@ -6,7 +6,7 @@ import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { Button } from '../ui/button';
 import { useExam } from '../../contexts/ExamContext';
-import { users, RefreshCw } from 'lucide-react';
+import { Users, RefreshCw } from 'lucide-react';
 
 const StudentsList = () => {
   const { allStudents, isLoading, loadAllStudents } = useExam();
@@ -20,7 +20,7 @@ const StudentsList = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <users className="h-5 w-5" />
+            <Users className="h-5 w-5" />
             My Students
           </CardTitle>
         </CardHeader>
@@ -47,7 +47,7 @@ const StudentsList = () => {
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <users className="h-5 w-5" />
+            <Users className="h-5 w-5" />
             My Students ({allStudents.length})
           </div>
           <Button 
@@ -64,7 +64,7 @@ const StudentsList = () => {
       <CardContent>
         {allStudents.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            <users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>No students found in the system.</p>
             <p className="text-sm text-gray-400 mt-1">Students will appear here when they register.</p>
             <Button 
