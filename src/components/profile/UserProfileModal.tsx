@@ -1,5 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import { useProfileOperations } from '../../hooks/useProfileOperations';
 import type { User, UserRole } from '../../types/auth';
 import { Button } from '../ui/button';
@@ -13,7 +13,7 @@ import { User as UserIcon, Mail, GraduationCap, Hash, AlertCircle, Check, Loader
 interface UserProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
-  userId: string;
+  userId?: string;
   canEdit?: boolean;
 }
 
@@ -23,6 +23,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
   userId, 
   canEdit = false 
 }) => {
+  const { user: currentUser } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -39,18 +40,31 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const { getUserProfile, updateUserProfile } = useProfileOperations();
 
   useEffect(() => {
-    if (isOpen && userId) {
-      loadUserProfile();
+    if (isOpen) {
+      // Use the provided userId or fall back to current user's ID
+      const targetUserId = userId || currentUser?.id;
+      if (targetUserId) {
+        loadUserProfile(targetUserId);
+      } else if (currentUser) {
+        // If no userId provided and we have a current user, display current user info
+        setUser(currentUser);
+        setEditForm({
+          name: currentUser.name,
+          studentId: currentUser.studentId || '',
+          avatar: currentUser.avatar || '',
+          department: currentUser.department || ''
+        });
+      }
     }
-  }, [isOpen, userId]);
+  }, [isOpen, userId, currentUser]);
 
-  const loadUserProfile = async () => {
+  const loadUserProfile = async (targetUserId: string) => {
     setIsLoading(true);
     setError('');
     
     try {
-      console.log('Loading profile for userId:', userId);
-      const profile = await getUserProfile(userId);
+      console.log('Loading profile for userId:', targetUserId);
+      const profile = await getUserProfile(targetUserId);
       console.log('Profile loaded:', profile);
       
       if (profile) {
@@ -89,7 +103,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     if (result.success) {
       setSuccess('Profile updated successfully');
       setIsEditing(false);
-      await loadUserProfile();
+      await loadUserProfile(user.id);
     } else {
       setError(result.error || 'Failed to update profile');
     }
