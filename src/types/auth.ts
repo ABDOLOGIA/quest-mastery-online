@@ -29,7 +29,7 @@ export interface ExtendedAuthContextType extends AuthContextType {
   getUserProfile: (userId: string) => Promise<User | null>;
   updateUserProfile: (userId: string, updates: Partial<User>) => Promise<{ success: boolean; error?: string }>;
   getAllProfiles: () => Promise<User[]>;
-  getProfilesByRole: (role: string) => Promise<User[]>;
+  getProfilesByRole: (role: UserRole) => Promise<User[]>;
 }
 
 export interface AuthResult {

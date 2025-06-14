@@ -1,6 +1,6 @@
 
 import { supabase } from '../lib/supabase';
-import type { User } from '../types/auth';
+import type { User, UserRole } from '../types/auth';
 
 export const useProfileOperations = () => {
   const getUserProfile = async (userId: string): Promise<User | null> => {
@@ -96,7 +96,7 @@ export const useProfileOperations = () => {
     }
   };
 
-  const getProfilesByRole = async (role: string): Promise<User[]> => {
+  const getProfilesByRole = async (role: UserRole): Promise<User[]> => {
     try {
       console.log('Fetching profiles by role:', role);
       
