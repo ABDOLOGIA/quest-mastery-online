@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useProfileOperations } from '../../hooks/useProfileOperations';
-import { useAuth } from '../../contexts/AuthContext';
 import type { User, UserRole } from '../../types/auth';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -11,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Alert, AlertDescription } from '../ui/alert';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { User as UserIcon, Mail, GraduationCap, Building, AlertCircle, Check, Loader2, Hash, RefreshCw } from 'lucide-react';
+import { User as UserIcon, Mail, GraduationCap, Building, AlertCircle, Check, Loader2, Hash } from 'lucide-react';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -40,7 +39,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
   });
 
   const { getUserProfile, updateUserProfile } = useProfileOperations();
-  const { user: currentUser } = useAuth();
 
   useEffect(() => {
     if (isOpen && userId) {
@@ -53,24 +51,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     setError('');
     
     try {
-      console.log('Loading user profile for modal, userId:', userId);
-      
-      // If this is the current user's profile, use the current user data first
-      if (currentUser && currentUser.id === userId) {
-        console.log('Using current user data:', currentUser);
-        setUser(currentUser);
-        setEditForm({
-          name: currentUser.name,
-          department: currentUser.department || '',
-          studentId: currentUser.studentId || '',
-          avatar: currentUser.avatar || ''
-        });
-      }
-      
-      // Still fetch from database to get the latest data
       const profile = await getUserProfile(userId);
-      console.log('Profile fetched from database:', profile);
-      
       if (profile) {
         setUser(profile);
         setEditForm({
@@ -79,8 +60,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
           studentId: profile.studentId || '',
           avatar: profile.avatar || ''
         });
-      } else if (!currentUser || currentUser.id !== userId) {
-        // Only show error if it's not the current user's profile
+      } else {
         setError('User profile not found');
       }
     } catch (error) {
@@ -131,10 +111,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     setSuccess('');
   };
 
-  const handleRefresh = () => {
-    loadUserProfile();
-  };
-
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
@@ -161,18 +137,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md mx-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle>User Profile</DialogTitle>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleRefresh}
-              disabled={isLoading}
-              className="h-8 w-8 p-0"
-            >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            </Button>
-          </div>
+          <DialogTitle>User Profile</DialogTitle>
         </DialogHeader>
 
         {isLoading && (
@@ -368,14 +333,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
         {!isLoading && !user && (
           <div className="text-center py-8">
             <p className="text-gray-500">User profile not found</p>
-            <Button 
-              variant="outline" 
-              onClick={handleRefresh}
-              className="mt-4"
-            >
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Try Again
-            </Button>
           </div>
         )}
       </DialogContent>

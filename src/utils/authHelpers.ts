@@ -10,25 +10,26 @@ export const handleAuthUser = async (session: Session): Promise<User | null> => 
     console.log('Email confirmed:', emailConfirmed, 'Email confirmed at:', session.user.email_confirmed_at);
     
     if (emailConfirmed) {
-      // Fetch user profile with proper error handling
-      console.log('Fetching profile for authenticated user:', session.user.id);
-      
+      // Fetch user profile with timeout
+      const profilePromise = supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 3000)
+      );
+
       try {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .maybeSingle();
+        const { data: profile, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
 
-        console.log('Profile fetch result:', { profile, error });
-
-        if (error) {
+        if (error && error.code !== 'PGRST116') {
           console.error('Error fetching user profile:', error);
-          // Continue with basic user info if profile fetch fails
         }
 
         if (profile) {
-          console.log('Profile data fetched successfully:', profile);
+          console.log('Profile data fetched:', profile);
           return {
             id: profile.id,
             email: profile.email,
@@ -40,91 +41,41 @@ export const handleAuthUser = async (session: Session): Promise<User | null> => 
             emailConfirmed: true
           };
         } else {
-          console.log('No profile found, checking if profile should be created');
-          
-          // Try to create profile if it doesn't exist
-          const userMetadata = session.user.user_metadata || {};
-          const profileData = {
-            id: session.user.id,
-            email: session.user.email,
-            name: userMetadata.name || session.user.email?.split('@')[0] || 'User',
-            role: (userMetadata.role as UserRole) || 'student',
-            department: userMetadata.department,
-            student_id: userMetadata.studentId
-          };
-
-          console.log('Attempting to create profile:', profileData);
-
-          const { data: newProfile, error: createError } = await supabase
-            .from('profiles')
-            .insert(profileData)
-            .select()
-            .maybeSingle();
-
-          if (createError) {
-            console.error('Error creating profile:', createError);
-            // Return basic user info even if profile creation fails
-            return {
-              id: session.user.id,
-              email: session.user.email || '',
-              name: userMetadata.name || session.user.email?.split('@')[0] || 'User',
-              role: (userMetadata.role as UserRole) || 'student',
-              department: userMetadata.department,
-              studentId: userMetadata.studentId,
-              emailConfirmed: true
-            };
-          }
-
-          if (newProfile) {
-            console.log('Profile created successfully:', newProfile);
-            return {
-              id: newProfile.id,
-              email: newProfile.email,
-              name: newProfile.name,
-              role: newProfile.role as UserRole,
-              avatar: newProfile.avatar || undefined,
-              department: newProfile.department || undefined,
-              studentId: newProfile.student_id || undefined,
-              emailConfirmed: true
-            };
-          }
-
-          // Fallback to basic user info
+          // Create basic user info if no profile exists
+          console.log('No profile found, creating basic user info');
           return {
             id: session.user.id,
             email: session.user.email || '',
-            name: userMetadata.name || session.user.email?.split('@')[0] || 'User',
-            role: (userMetadata.role as UserRole) || 'student',
-            department: userMetadata.department,
-            studentId: userMetadata.studentId,
+            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
+            role: (session.user.user_metadata?.role as UserRole) || 'student',
+            department: session.user.user_metadata?.department,
+            studentId: session.user.user_metadata?.studentId,
             emailConfirmed: true
           };
         }
       } catch (profileError) {
-        console.error('Profile operation failed:', profileError);
-        // Return basic user info if all profile operations fail
-        const userMetadata = session.user.user_metadata || {};
+        console.error('Profile fetch failed:', profileError);
+        // Still set basic user info even if profile fetch fails
         return {
           id: session.user.id,
           email: session.user.email || '',
-          name: userMetadata.name || session.user.email?.split('@')[0] || 'User',
-          role: (userMetadata.role as UserRole) || 'student',
-          department: userMetadata.department,
-          studentId: userMetadata.studentId,
+          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
+          role: (session.user.user_metadata?.role as UserRole) || 'student',
+          department: session.user.user_metadata?.department,
+          studentId: session.user.user_metadata?.studentId,
           emailConfirmed: true
         };
       }
     } else {
       // Set user with limited info if email not confirmed
       console.log('Email not confirmed, setting limited user info');
-      const userMetadata = session.user.user_metadata || {};
       return {
         id: session.user.id,
         email: session.user.email || '',
-        name: userMetadata.name || session.user.email?.split('@')[0] || 'User',
-        role: (userMetadata.role as UserRole) || 'student',
-        department: userMetadata.department,
-        studentId: userMetadata.studentId,
+        name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
+        role: (session.user.user_metadata?.role as UserRole) || 'student',
+        department: session.user.user_metadata?.department,
+        studentId: session.user.user_metadata?.studentId,
         emailConfirmed: false
       };
     }

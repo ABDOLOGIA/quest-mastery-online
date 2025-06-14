@@ -7,14 +7,11 @@ export const useProfileOperations = () => {
     try {
       console.log('Fetching profile for user:', userId);
       
-      // Try direct query first (for own profile)
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .maybeSingle();
-
-      console.log('Profile query result:', { profile, error });
+        .single();
 
       if (error) {
         console.error('Error fetching user profile:', error);
@@ -22,7 +19,6 @@ export const useProfileOperations = () => {
       }
 
       if (profile) {
-        console.log('Profile found:', profile);
         return {
           id: profile.id,
           email: profile.email,
@@ -35,7 +31,6 @@ export const useProfileOperations = () => {
         };
       }
 
-      console.log('No profile found for user:', userId);
       return null;
     } catch (error) {
       console.error('Error in getUserProfile:', error);
