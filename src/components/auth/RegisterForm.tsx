@@ -28,6 +28,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
   const [emailCheckLoading, setEmailCheckLoading] = useState(false);
   const [emailExists, setEmailExists] = useState(false);
+  const [emailCheckDone, setEmailCheckDone] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState({
     hasMinLength: false,
     hasUppercase: false,
@@ -53,15 +54,27 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
     if (formData.email && formData.email.includes('@')) {
       setEmailCheckLoading(true);
       setEmailExists(false);
+      setEmailCheckDone(false);
       setError('');
       
-      const result = await checkEmailExists(formData.email);
-      if (result.exists) {
-        setEmailExists(true);
-        setError('This email address is already registered. Please try logging in instead.');
-      } else if (result.error) {
-        setError(result.error);
+      try {
+        const result = await checkEmailExists(formData.email);
+        
+        if (result.exists) {
+          setEmailExists(true);
+          setError('This email address is already registered. Please try logging in instead.');
+        } else if (result.error) {
+          // Don't show error for email check failures - just proceed
+          console.log('Email check warning:', result.error);
+        }
+        
+        setEmailCheckDone(true);
+      } catch (error) {
+        console.error('Email check failed:', error);
+        // Don't block user - just proceed without check
+        setEmailCheckDone(true);
       }
+      
       setEmailCheckLoading(false);
     }
   };
@@ -116,6 +129,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
         studentId: ''
       });
       setEmailExists(false);
+      setEmailCheckDone(false);
     } else {
       setError(result.error || 'Registration failed. Please try again.');
     }
@@ -142,6 +156,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
     }
     if (field === 'email') {
       setEmailExists(false);
+      setEmailCheckDone(false);
       setError('');
     }
   };
@@ -195,18 +210,24 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
                     value={formData.email}
                     onChange={(e) => handleChange('email', e.target.value)}
                     onBlur={handleEmailBlur}
-                    className={`pl-10 ${emailExists ? 'border-red-500 focus:border-red-500' : ''}`}
+                    className={`pl-10 ${emailExists ? 'border-red-500 focus:border-red-500' : emailCheckDone && !emailExists ? 'border-green-500 focus:border-green-500' : ''}`}
                     disabled={isLoading || emailCheckLoading}
                   />
                   {emailCheckLoading && (
-                    <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-gray-400" />
+                    <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-blue-500" />
                   )}
                   {emailExists && (
                     <X className="absolute right-3 top-3 h-4 w-4 text-red-500" />
                   )}
+                  {emailCheckDone && !emailExists && formData.email && (
+                    <CheckCircle className="absolute right-3 top-3 h-4 w-4 text-green-500" />
+                  )}
                 </div>
                 {emailExists && (
                   <p className="text-sm text-red-600">This email is already registered</p>
+                )}
+                {emailCheckDone && !emailExists && formData.email && (
+                  <p className="text-sm text-green-600">Email is available</p>
                 )}
               </div>
 

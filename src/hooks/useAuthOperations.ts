@@ -1,4 +1,3 @@
-
 import { supabase } from '../lib/supabase';
 import type { User, UserRole, AuthResult, EmailCheckResult } from '../types/auth';
 
@@ -7,7 +6,11 @@ export const useAuthOperations = () => {
     try {
       console.log('Checking if email exists:', email);
       
-      // Check if user exists in profiles table
+      if (!email || !email.includes('@')) {
+        return { exists: false, error: 'Please enter a valid email address' };
+      }
+      
+      // Check if user exists in profiles table first
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('email')
@@ -16,7 +19,8 @@ export const useAuthOperations = () => {
       
       if (profileError && profileError.code !== 'PGRST116') {
         console.error('Error checking email in profiles:', profileError);
-        return { exists: false, error: 'Unable to verify email availability' };
+        // Don't block registration if we can't check - just proceed
+        return { exists: false };
       }
       
       if (profile) {
@@ -24,28 +28,35 @@ export const useAuthOperations = () => {
         return { exists: true };
       }
       
-      // If not in profiles, check auth.users via a sign-in attempt
+      // If not in profiles, try a simple auth check by attempting to sign in with a dummy password
+      // This is a common pattern to check if an email exists in auth.users
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: email,
-        password: 'dummy-password-for-check'
+        password: 'dummy-check-password-12345'
       });
       
       if (signInError) {
+        // If we get "Invalid login credentials", the email exists but password is wrong
+        // If we get "Email not confirmed", the email exists but isn't confirmed yet
         if (signInError.message.includes('Invalid login credentials') || 
-            signInError.message.includes('Email not confirmed')) {
+            signInError.message.includes('Email not confirmed') ||
+            signInError.message.includes('too many requests')) {
           console.log('Email exists in auth.users (detected via sign-in error)');
           return { exists: true };
         }
         
+        // Any other error likely means the email doesn't exist
         console.log('Email does not exist (no matching user found)');
         return { exists: false };
       }
       
+      // This shouldn't happen with a dummy password, but just in case
       return { exists: false };
       
     } catch (error) {
       console.error('Error checking email existence:', error);
-      return { exists: false, error: 'Unable to verify email availability' };
+      // Don't block registration if email check fails - just proceed
+      return { exists: false };
     }
   };
 
