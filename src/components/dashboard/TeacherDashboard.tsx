@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import QuestionManagement from '../teacher/QuestionManagement';
 import ExamCreationForm from '../teacher/ExamCreationForm';
 import { useToast } from '../ui/use-toast';
+import { canCreateContent, canManageExams } from '../../utils/roleHelpers';
 import { 
   FileText, 
   Users, 
@@ -19,7 +20,8 @@ import {
   CheckCircle,
   Eye,
   ArrowLeft,
-  RefreshCw
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
 
 interface TeacherStats {
@@ -43,6 +45,21 @@ const TeacherDashboard: React.FC = () => {
   const [showExamForm, setShowExamForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [allStudents, setAllStudents] = useState<any[]>([]);
+
+  // Check if user has permission to access teacher dashboard
+  if (!canManageExams(user)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-8 text-center">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Access Denied</h3>
+            <p className="text-gray-600">You don't have permission to access the teacher dashboard. Only teachers and admins can access this area.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const myExams = exams.filter(exam => exam.createdBy === user?.id);
 
@@ -98,7 +115,7 @@ const TeacherDashboard: React.FC = () => {
   };
 
   const loadTeacherStats = async () => {
-    if (!user || user.role !== 'teacher') return;
+    if (!user || !canManageExams(user)) return;
 
     try {
       // Get pending grading count
@@ -220,21 +237,25 @@ const TeacherDashboard: React.FC = () => {
 
           {/* Quick Actions */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveTab('questions')}>
-              <CardContent className="p-6 text-center">
-                <PlusCircle className="w-12 h-12 text-primary mx-auto mb-3" />
-                <h3 className="text-lg font-semibold mb-2">Manage Questions</h3>
-                <p className="text-gray-600 text-sm">Create and organize exam questions</p>
-              </CardContent>
-            </Card>
+            {canCreateContent(user) && (
+              <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveTab('questions')}>
+                <CardContent className="p-6 text-center">
+                  <PlusCircle className="w-12 h-12 text-primary mx-auto mb-3" />
+                  <h3 className="text-lg font-semibold mb-2">Manage Questions</h3>
+                  <p className="text-gray-600 text-sm">Create and organize exam questions</p>
+                </CardContent>
+              </Card>
+            )}
 
-            <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveTab('exams')}>
-              <CardContent className="p-6 text-center">
-                <FileText className="w-12 h-12 text-blue-600 mx-auto mb-3" />
-                <h3 className="text-lg font-semibold mb-2">Create Exam</h3>
-                <p className="text-gray-600 text-sm">Design a new examination</p>
-              </CardContent>
-            </Card>
+            {canCreateContent(user) && (
+              <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveTab('exams')}>
+                <CardContent className="p-6 text-center">
+                  <FileText className="w-12 h-12 text-blue-600 mx-auto mb-3" />
+                  <h3 className="text-lg font-semibold mb-2">Create Exam</h3>
+                  <p className="text-gray-600 text-sm">Design a new examination</p>
+                </CardContent>
+              </Card>
+            )}
 
             <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveTab('results')}>
               <CardContent className="p-6 text-center">
@@ -270,10 +291,12 @@ const TeacherDashboard: React.FC = () => {
                     <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                     Refresh
                   </Button>
-                  <Button onClick={() => setShowExamForm(true)}>
-                    <PlusCircle className="w-4 h-4 mr-2" />
-                    Create New Exam
-                  </Button>
+                  {canCreateContent(user) && (
+                    <Button onClick={() => setShowExamForm(true)}>
+                      <PlusCircle className="w-4 h-4 mr-2" />
+                      Create New Exam
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -290,10 +313,12 @@ const TeacherDashboard: React.FC = () => {
                     <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                     <p className="text-gray-500">No exams created yet</p>
                     <p className="text-sm text-gray-400 mt-1">Create your first exam to get started</p>
-                    <Button className="mt-4" onClick={() => setShowExamForm(true)}>
-                      <PlusCircle className="w-4 h-4 mr-2" />
-                      Create Your First Exam
-                    </Button>
+                    {canCreateContent(user) && (
+                      <Button className="mt-4" onClick={() => setShowExamForm(true)}>
+                        <PlusCircle className="w-4 h-4 mr-2" />
+                        Create Your First Exam
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               ) : (

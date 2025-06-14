@@ -1,5 +1,7 @@
+
 import React, { useState } from 'react';
 import { useExam } from '../../contexts/ExamContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -10,6 +12,8 @@ import { Badge } from '../ui/badge';
 import { useToast } from '../ui/use-toast';
 import { AlertCircle, Plus, Trash2, Save, X, Loader2 } from 'lucide-react';
 import { Question } from '../../types/exam';
+import { canCreateContent } from '../../utils/roleHelpers';
+import { validateExam, formatValidationErrors } from '../../utils/examValidation';
 
 interface ExamCreationFormProps {
   onExamCreated?: () => void;
@@ -29,7 +33,21 @@ interface FormErrors {
 
 const ExamCreationForm: React.FC<ExamCreationFormProps> = ({ onExamCreated, onCancel }) => {
   const { createExam, isLoading } = useExam();
+  const { user } = useAuth();
   const { toast } = useToast();
+
+  // Check if user has permission to create exams
+  if (!canCreateContent(user)) {
+    return (
+      <Card className="w-full max-w-4xl mx-auto">
+        <CardContent className="p-8 text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Access Denied</h3>
+          <p className="text-gray-600">You don't have permission to create exams. Only teachers and admins can create exams.</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const [formData, setFormData] = useState({
     title: '',
@@ -47,57 +65,37 @@ const ExamCreationForm: React.FC<ExamCreationFormProps> = ({ onExamCreated, onCa
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const validateForm = (): FormErrors => {
-    const newErrors: FormErrors = {};
-
-    if (!formData.title.trim()) {
-      newErrors.title = 'Exam title is required';
-    }
-
-    if (!formData.subject.trim()) {
-      newErrors.subject = 'Subject is required';
-    }
-
-    if (!formData.duration || formData.duration <= 0) {
-      newErrors.duration = 'Duration must be greater than 0 minutes';
-    }
-
-    if (!formData.totalPoints || formData.totalPoints <= 0) {
-      newErrors.totalPoints = 'Total points must be greater than 0';
-    }
-
-    if (!formData.alwaysAvailable) {
-      if (!formData.startTime) {
-        newErrors.startTime = 'Start time is required when not always available';
-      }
-      if (!formData.endTime) {
-        newErrors.endTime = 'End time is required when not always available';
-      }
-      if (formData.startTime && formData.endTime && formData.startTime >= formData.endTime) {
-        newErrors.endTime = 'End time must be after start time';
-      }
-    }
-
-    if (questions.length === 0) {
-      newErrors.questions = 'At least one question is required';
-    }
-
-    return newErrors;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Clear previous errors
     setErrors({});
     
-    // Validate form
-    const formErrors = validateForm();
-    if (Object.keys(formErrors).length > 0) {
-      setErrors(formErrors);
+    // Create exam data object
+    const examData = {
+      ...formData,
+      questions,
+      createdBy: user?.id || '',
+      allowReview: true,
+      shuffleQuestions: false
+    };
+
+    // Validate exam data
+    const validationErrors = validateExam(examData);
+    if (validationErrors.length > 0) {
+      const fieldErrors: FormErrors = {};
+      validationErrors.forEach(error => {
+        if (error.field.includes('question')) {
+          fieldErrors.questions = 'Please fix question validation errors';
+        } else {
+          fieldErrors[error.field as keyof FormErrors] = error.message;
+        }
+      });
+      
+      setErrors(fieldErrors);
       
       // Focus on first error field
-      const firstErrorField = Object.keys(formErrors)[0];
+      const firstErrorField = Object.keys(fieldErrors)[0];
       const element = document.getElementById(firstErrorField);
       if (element) {
         element.focus();
@@ -106,7 +104,7 @@ const ExamCreationForm: React.FC<ExamCreationFormProps> = ({ onExamCreated, onCa
       
       toast({
         title: "Validation Error",
-        description: "Please fix the errors below before submitting.",
+        description: formatValidationErrors(validationErrors),
         variant: "destructive",
       });
       return;
@@ -115,15 +113,10 @@ const ExamCreationForm: React.FC<ExamCreationFormProps> = ({ onExamCreated, onCa
     setIsSubmitting(true);
     
     try {
-      console.log('Submitting exam data:', { ...formData, questions });
+      console.log('Submitting exam data:', examData);
+      console.log('User creating exam:', user?.id, 'role:', user?.role);
       
-      await createExam({
-        ...formData,
-        questions,
-        createdBy: 'current-user', // This should be set by the backend
-        allowReview: true,
-        shuffleQuestions: false
-      });
+      await createExam(examData);
 
       toast({
         title: "Success!",
