@@ -115,6 +115,23 @@ const ExamCreationForm: React.FC<ExamCreationFormProps> = ({ onExamCreated, onCa
 
       console.log('Submitting exam data:', examData);
       await createExam(examData);
+      
+      // Reset form on success
+      setFormData({
+        title: '',
+        description: '',
+        subject: '',
+        duration: 60,
+        totalPoints: 100,
+        startDate: undefined,
+        endDate: undefined,
+        isActive: false,
+        allowReview: true,
+        shuffleQuestions: false,
+        alwaysAvailable: true
+      });
+      setErrors({});
+      
       onExamCreated();
     } catch (error) {
       console.error('Error creating exam:', error);

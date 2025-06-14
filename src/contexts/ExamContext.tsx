@@ -371,7 +371,7 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       let query = supabase.from('exams').select(`
         *,
-        subjects!exams_subject_id_fkey(name),
+        subjects(name),
         questions(*)
       `);
 
@@ -508,6 +508,8 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // First, get or create the subject
       let subjectId;
+      
+      // Check for existing subject
       const { data: existingSubject, error: subjectQueryError } = await supabase
         .from('subjects')
         .select('id')
@@ -535,7 +537,7 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (subjectError) {
           console.error('Error creating subject:', subjectError);
-          throw new Error('Failed to create subject. Please try again.');
+          throw new Error(`Failed to create subject: ${subjectError.message}`);
         }
         subjectId = newSubject.id;
         console.log('Created new subject:', subjectId);
