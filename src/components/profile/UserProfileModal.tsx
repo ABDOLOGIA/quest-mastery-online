@@ -11,6 +11,7 @@ import ProfileAvatar from './ProfileAvatar';
 import ProfileInfo from './ProfileInfo';
 import ProfileEditForm from './ProfileEditForm';
 import ProfileActions from './ProfileActions';
+import RoleUpgradeSection from './RoleUpgradeSection';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -166,9 +167,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     setIsEditing(true);
   };
 
+  const isOwnProfile = user?.id === currentUser?.id;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md mx-auto">
+      <DialogContent className="max-w-2xl mx-auto max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>User Profile</DialogTitle>
         </DialogHeader>
@@ -202,33 +205,43 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
         )}
 
         {!isLoading && !error && user && (
-          <div className="space-y-6">
-            <ProfileAvatar user={user} editForm={editForm} isEditing={isEditing} />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column - Profile Info */}
+            <div className="lg:col-span-2 space-y-6">
+              <ProfileAvatar user={user} editForm={editForm} isEditing={isEditing} />
 
-            <div className="space-y-4">
-              {isEditing ? (
-                <ProfileEditForm user={user} editForm={editForm} setEditForm={setEditForm} />
-              ) : (
-                <ProfileInfo user={user} />
+              <div className="space-y-4">
+                {isEditing ? (
+                  <ProfileEditForm user={user} editForm={editForm} setEditForm={setEditForm} />
+                ) : (
+                  <ProfileInfo user={user} />
+                )}
+              </div>
+
+              {success && (
+                <Alert className="border-green-200 bg-green-50 text-green-800">
+                  <Check className="h-4 w-4" />
+                  <AlertDescription>{success}</AlertDescription>
+                </Alert>
               )}
+
+              <ProfileActions
+                canEdit={canEdit}
+                isEditing={isEditing}
+                isLoading={isLoading}
+                editFormValid={!!editForm.name.trim()}
+                onEdit={handleEdit}
+                onSave={handleSave}
+                onCancel={handleCancel}
+              />
             </div>
 
-            {success && (
-              <Alert className="border-green-200 bg-green-50 text-green-800">
-                <Check className="h-4 w-4" />
-                <AlertDescription>{success}</AlertDescription>
-              </Alert>
+            {/* Right Column - Role Management */}
+            {isOwnProfile && (
+              <div className="space-y-6">
+                <RoleUpgradeSection />
+              </div>
             )}
-
-            <ProfileActions
-              canEdit={canEdit}
-              isEditing={isEditing}
-              isLoading={isLoading}
-              editFormValid={!!editForm.name.trim()}
-              onEdit={handleEdit}
-              onSave={handleSave}
-              onCancel={handleCancel}
-            />
           </div>
         )}
 

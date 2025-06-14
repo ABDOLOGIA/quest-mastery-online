@@ -18,6 +18,7 @@ export type Database = {
           is_completed: boolean
           score: number
           started_at: string
+          status: string | null
           student_id: string | null
           total_marks: number
         }
@@ -29,6 +30,7 @@ export type Database = {
           is_completed?: boolean
           score?: number
           started_at?: string
+          status?: string | null
           student_id?: string | null
           total_marks: number
         }
@@ -40,6 +42,7 @@ export type Database = {
           is_completed?: boolean
           score?: number
           started_at?: string
+          status?: string | null
           student_id?: string | null
           total_marks?: number
         }
@@ -77,47 +80,63 @@ export type Database = {
       exams: {
         Row: {
           created_at: string
+          creator_id: string | null
           description: string | null
           duration_minutes: number
           end_time: string | null
           id: string
           is_published: boolean
           start_time: string | null
+          status: string | null
           subject_id: string | null
           teacher_id: string | null
           title: string
           total_marks: number
+          total_points: number | null
           updated_at: string
         }
         Insert: {
           created_at?: string
+          creator_id?: string | null
           description?: string | null
           duration_minutes?: number
           end_time?: string | null
           id?: string
           is_published?: boolean
           start_time?: string | null
+          status?: string | null
           subject_id?: string | null
           teacher_id?: string | null
           title: string
           total_marks?: number
+          total_points?: number | null
           updated_at?: string
         }
         Update: {
           created_at?: string
+          creator_id?: string | null
           description?: string | null
           duration_minutes?: number
           end_time?: string | null
           id?: string
           is_published?: boolean
           start_time?: string | null
+          status?: string | null
           subject_id?: string | null
           teacher_id?: string | null
           title?: string
           total_marks?: number
+          total_points?: number | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "exams_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "exams_subject_id_fkey"
             columns: ["subject_id"]
@@ -154,6 +173,7 @@ export type Database = {
           created_at: string
           department: string | null
           email: string
+          full_name: string | null
           id: string
           name: string
           role: Database["public"]["Enums"]["user_role"]
@@ -165,6 +185,7 @@ export type Database = {
           created_at?: string
           department?: string | null
           email: string
+          full_name?: string | null
           id: string
           name: string
           role?: Database["public"]["Enums"]["user_role"]
@@ -176,6 +197,7 @@ export type Database = {
           created_at?: string
           department?: string | null
           email?: string
+          full_name?: string | null
           id?: string
           name?: string
           role?: Database["public"]["Enums"]["user_role"]
@@ -231,6 +253,54 @@ export type Database = {
             columns: ["exam_id"]
             isOneToOne: false
             referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_requests: {
+        Row: {
+          created_at: string | null
+          id: string
+          reason: string | null
+          requested_role: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          reason?: string | null
+          requested_role: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          reason?: string | null
+          requested_role?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -295,29 +365,44 @@ export type Database = {
       subjects: {
         Row: {
           created_at: string
+          created_by: string | null
           description: string | null
           id: string
           name: string
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           description?: string | null
           id?: string
           name: string
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           description?: string | null
           id?: string
           name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "subjects_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      approve_role_request: {
+        Args: { request_id: string; approve: boolean }
+        Returns: boolean
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -352,6 +437,10 @@ export type Database = {
       get_teacher_students_count: {
         Args: Record<PropertyKey, never>
         Returns: number
+      }
+      verify_user_role: {
+        Args: { user_id: string; required_role: string }
+        Returns: boolean
       }
     }
     Enums: {

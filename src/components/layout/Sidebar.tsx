@@ -8,7 +8,9 @@ import {
   BookOpen, 
   BarChart3,
   ClipboardList,
-  LogOut
+  LogOut,
+  UserCheck,
+  Settings
 } from 'lucide-react';
 import { Button } from '../ui/button';
 
@@ -29,8 +31,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
       return [
         ...baseItems,
         { id: 'users', label: 'User Management', icon: Users },
+        { id: 'roles', label: 'Role Requests', icon: UserCheck },
         { id: 'subjects', label: 'Subject Management', icon: BookOpen },
-        { id: 'analytics', label: 'Analytics', icon: BarChart3 }
+        { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+        { id: 'settings', label: 'System Settings', icon: Settings }
       ];
     }
 
