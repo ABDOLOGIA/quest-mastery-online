@@ -229,40 +229,65 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) return;
 
     try {
-      let query = supabase.from('student_exams').select('*');
-      
       if (user.role === 'student') {
-        query = query.eq('student_id', user.id);
+        // Students see only their own exam attempts
+        const { data, error } = await supabase
+          .from('student_exams')
+          .select('*')
+          .eq('student_id', user.id);
+
+        if (error) {
+          console.error('Error loading student exams:', error);
+          return;
+        }
+
+        if (data) {
+          const formattedStudentExams: StudentExam[] = data.map(se => ({
+            id: se.id,
+            studentId: se.student_id,
+            examId: se.exam_id,
+            startedAt: new Date(se.started_at),
+            submittedAt: se.submitted_at ? new Date(se.submitted_at) : undefined,
+            answers: se.answers as Record<string, string | string[]>,
+            score: se.score,
+            isGraded: se.is_graded,
+            isSubmitted: se.is_submitted,
+            timeSpent: se.time_spent
+          }));
+
+          setStudentExams(formattedStudentExams);
+        }
       } else if (user.role === 'teacher') {
-        // Teachers can see student exams for their exams
-        query = query.select(`
-          *,
-          exams!student_exams_exam_id_fkey(teacher_id)
-        `).eq('exams.teacher_id', user.id);
-      }
+        // Teachers see student exams for their exams
+        const { data, error } = await supabase
+          .from('student_exams')
+          .select(`
+            *,
+            exams!inner(teacher_id)
+          `)
+          .eq('exams.teacher_id', user.id);
 
-      const { data, error } = await query;
+        if (error) {
+          console.error('Error loading student exams for teacher:', error);
+          return;
+        }
 
-      if (error) {
-        console.error('Error loading student exams:', error);
-        return;
-      }
+        if (data) {
+          const formattedStudentExams: StudentExam[] = data.map(se => ({
+            id: se.id,
+            studentId: se.student_id,
+            examId: se.exam_id,
+            startedAt: new Date(se.started_at),
+            submittedAt: se.submitted_at ? new Date(se.submitted_at) : undefined,
+            answers: se.answers as Record<string, string | string[]>,
+            score: se.score,
+            isGraded: se.is_graded,
+            isSubmitted: se.is_submitted,
+            timeSpent: se.time_spent
+          }));
 
-      if (data) {
-        const formattedStudentExams: StudentExam[] = data.map(se => ({
-          id: se.id,
-          studentId: se.student_id,
-          examId: se.exam_id,
-          startedAt: new Date(se.started_at),
-          submittedAt: se.submitted_at ? new Date(se.submitted_at) : undefined,
-          answers: se.answers as Record<string, string | string[]>,
-          score: se.score,
-          isGraded: se.is_graded,
-          isSubmitted: se.is_submitted,
-          timeSpent: se.time_spent
-        }));
-
-        setStudentExams(formattedStudentExams);
+          setStudentExams(formattedStudentExams);
+        }
       }
     } catch (error) {
       console.error('Error in loadStudentExams:', error);
