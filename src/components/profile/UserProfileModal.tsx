@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Alert, AlertDescription } from '../ui/alert';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { User as UserIcon, Mail, GraduationCap, Building, AlertCircle, Check, Loader2 } from 'lucide-react';
+import { User as UserIcon, Mail, GraduationCap, Building, AlertCircle, Check, Loader2, Hash } from 'lucide-react';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -228,21 +228,46 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
               ) : (
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3">
+                    <UserIcon className="h-4 w-4 text-gray-400" />
+                    <div>
+                      <span className="text-sm font-medium text-gray-900">{user.name}</span>
+                      <p className="text-xs text-gray-500">Full Name</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-3">
+                    <Hash className="h-4 w-4 text-gray-400" />
+                    <div>
+                      <span className="text-sm font-medium text-gray-900">{user.id}</span>
+                      <p className="text-xs text-gray-500">User ID</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-3">
                     <Mail className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">{user.email}</span>
+                    <div>
+                      <span className="text-sm text-gray-600">{user.email}</span>
+                      <p className="text-xs text-gray-500">Email Address</p>
+                    </div>
                   </div>
 
                   {user.department && (
                     <div className="flex items-center space-x-3">
                       <Building className="h-4 w-4 text-gray-400" />
-                      <span className="text-sm text-gray-600">{user.department}</span>
+                      <div>
+                        <span className="text-sm text-gray-600">{user.department}</span>
+                        <p className="text-xs text-gray-500">Department</p>
+                      </div>
                     </div>
                   )}
 
                   {user.studentId && (
                     <div className="flex items-center space-x-3">
                       <GraduationCap className="h-4 w-4 text-gray-400" />
-                      <span className="text-sm text-gray-600">Student ID: {user.studentId}</span>
+                      <div>
+                        <span className="text-sm text-gray-600">{user.studentId}</span>
+                        <p className="text-xs text-gray-500">Student ID</p>
+                      </div>
                     </div>
                   )}
                 </div>
