@@ -44,7 +44,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log('Setting up auth state listener...');
     
-    // Get initial session
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.id);
+      
+      if (session?.user) {
+        await handleAuthUser(session);
+      } else {
+        setUser(null);
+        setSession(null);
+        setIsLoading(false);
+      }
+    });
+
+    // THEN check for existing session
     const getInitialSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -68,19 +81,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.id);
-      
-      if (session?.user) {
-        await handleAuthUser(session);
-      } else {
-        setUser(null);
-        setSession(null);
-        setIsLoading(false);
-      }
-    });
-
     getInitialSession();
 
     return () => subscription.unsubscribe();
@@ -102,7 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .eq('id', session.user.id)
           .maybeSingle();
 
-        if (error) {
+        if (error && error.code !== 'PGRST116') {
           console.error('Error fetching user profile:', error);
         }
 
@@ -212,12 +212,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Attempting registration for:', userData.email);
       
+      const redirectUrl = `${window.location.origin}/`;
+      
       // First, sign up the user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: userData.email!,
         password: userData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: redirectUrl,
           data: {
             name: userData.name,
             role: userData.role || 'student',
@@ -263,11 +265,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const resendConfirmation = async (email: string): Promise<{ success: boolean; error?: string }> => {
     try {
       console.log('Resending confirmation email to:', email);
+      const redirectUrl = `${window.location.origin}/`;
+      
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email: email,
         options: {
-          emailRedirectTo: `${window.location.origin}/`
+          emailRedirectTo: redirectUrl
         }
       });
 
