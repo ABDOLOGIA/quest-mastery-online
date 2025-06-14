@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator 
 } from '../ui/dropdown-menu';
-import { GraduationCap, LogOut, User, Bell } from 'lucide-react';
+import { GraduationCap, LogOut, User } from 'lucide-react';
 import UserProfileModal from '../profile/UserProfileModal';
 
 const Header: React.FC = () => {
@@ -45,11 +45,6 @@ const Header: React.FC = () => {
             </div>
 
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" className="relative">
-                <Bell className="w-4 h-4" />
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full text-xs"></span>
-              </Button>
-
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-auto px-2">
