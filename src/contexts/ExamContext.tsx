@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
@@ -84,7 +83,7 @@ export const useExam = () => {
 
 export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const auth = useAuth();
-  const user = auth?.user; // Safely access user from auth context
+  const user = auth?.user;
   const [exams, setExams] = useState<Exam[]>([]);
   const [attempts, setAttempts] = useState<ExamAttempt[]>([]);
   const [submittedExams, setSubmittedExams] = useState<string[]>([]);
