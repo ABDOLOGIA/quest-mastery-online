@@ -25,13 +25,20 @@ DROP POLICY IF EXISTS "Teachers can view results for their exams" ON public.exam
 
 DROP POLICY IF EXISTS "Everyone can view subjects" ON public.subjects;
 DROP POLICY IF EXISTS "Admins can manage subjects" ON public.subjects;
+DROP POLICY IF EXISTS "Teachers can create subjects" ON public.subjects;
 
 -- Create RLS policies for exams table
 CREATE POLICY "Teachers can view their own exams" ON public.exams
   FOR SELECT USING (teacher_id = auth.uid());
 
 CREATE POLICY "Teachers can create exams" ON public.exams
-  FOR INSERT WITH CHECK (teacher_id = auth.uid());
+  FOR INSERT WITH CHECK (
+    teacher_id = auth.uid() AND 
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() AND role IN ('teacher', 'admin')
+    )
+  );
 
 CREATE POLICY "Teachers can update their own exams" ON public.exams
   FOR UPDATE USING (teacher_id = auth.uid());
@@ -119,7 +126,7 @@ CREATE POLICY "Teachers can create subjects" ON public.subjects
   FOR INSERT WITH CHECK (
     EXISTS (
       SELECT 1 FROM public.profiles 
-      WHERE id = auth.uid() AND role = 'teacher'
+      WHERE id = auth.uid() AND role IN ('teacher', 'admin')
     )
   );
 
