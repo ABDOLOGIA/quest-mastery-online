@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
@@ -44,9 +43,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log('Setting up auth state listener...');
     
+    // Set loading timeout to prevent infinite loading
+    const loadingTimeout = setTimeout(() => {
+      console.log('Auth loading timeout reached, stopping loading state');
+      setIsLoading(false);
+    }, 5000); // 5 second timeout
+    
+    let mounted = true;
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.id);
+      
+      if (!mounted) return;
+      
+      clearTimeout(loadingTimeout);
       
       if (session?.user) {
         await handleAuthUser(session);
@@ -60,8 +71,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // THEN check for existing session
     const getInitialSession = async () => {
       try {
+        console.log('Checking for initial session...');
         const { data: { session }, error } = await supabase.auth.getSession();
         console.log('Initial session check:', session?.user?.id, error);
+        
+        if (!mounted) return;
+        
+        clearTimeout(loadingTimeout);
         
         if (error) {
           console.error('Error getting initial session:', error);
@@ -73,17 +89,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('Found existing session, setting up user');
           await handleAuthUser(session);
         } else {
+          console.log('No existing session found');
           setIsLoading(false);
         }
       } catch (error) {
         console.error('Error in getInitialSession:', error);
-        setIsLoading(false);
+        if (mounted) {
+          clearTimeout(loadingTimeout);
+          setIsLoading(false);
+        }
       }
     };
 
     getInitialSession();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      clearTimeout(loadingTimeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleAuthUser = async (session: Session) => {
@@ -95,32 +119,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Email confirmed:', emailConfirmed, 'Email confirmed at:', session.user.email_confirmed_at);
       
       if (emailConfirmed) {
-        // Fetch user profile
-        const { data: profile, error } = await supabase
+        // Fetch user profile with timeout
+        const profilePromise = supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
           .maybeSingle();
 
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error fetching user profile:', error);
-        }
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Profile fetch timeout')), 3000)
+        );
 
-        if (profile) {
-          console.log('Profile data fetched:', profile);
-          setUser({
-            id: profile.id,
-            email: profile.email,
-            name: profile.name,
-            role: profile.role as UserRole,
-            avatar: profile.avatar || undefined,
-            department: profile.department || undefined,
-            studentId: profile.student_id || undefined,
-            emailConfirmed: true
-          });
-        } else {
-          // Create basic user info if no profile exists
-          console.log('No profile found, creating basic user info');
+        try {
+          const { data: profile, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
+
+          if (error && error.code !== 'PGRST116') {
+            console.error('Error fetching user profile:', error);
+          }
+
+          if (profile) {
+            console.log('Profile data fetched:', profile);
+            setUser({
+              id: profile.id,
+              email: profile.email,
+              name: profile.name,
+              role: profile.role as UserRole,
+              avatar: profile.avatar || undefined,
+              department: profile.department || undefined,
+              studentId: profile.student_id || undefined,
+              emailConfirmed: true
+            });
+          } else {
+            // Create basic user info if no profile exists
+            console.log('No profile found, creating basic user info');
+            setUser({
+              id: session.user.id,
+              email: session.user.email || '',
+              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
+              role: (session.user.user_metadata?.role as UserRole) || 'student',
+              department: session.user.user_metadata?.department,
+              studentId: session.user.user_metadata?.studentId,
+              emailConfirmed: true
+            });
+          }
+        } catch (profileError) {
+          console.error('Profile fetch failed:', profileError);
+          // Still set basic user info even if profile fetch fails
           setUser({
             id: session.user.id,
             email: session.user.email || '',

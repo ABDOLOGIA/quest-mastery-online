@@ -11,12 +11,18 @@ import StudentDashboard from '../components/dashboard/StudentDashboard';
 import TeacherDashboard from '../components/dashboard/TeacherDashboard';
 import AdminDashboard from '../components/dashboard/AdminDashboard';
 import ExamInterface from '../components/exam/ExamInterface';
+import FallbackLoading from '../components/ui/fallback-loading';
 
 const Index = () => {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const { currentExam } = useExam();
   const [authView, setAuthView] = useState<'login' | 'register' | 'forgot'>('login');
   const [activeSection, setActiveSection] = useState('dashboard');
+
+  // Show loading screen while checking authentication
+  if (isLoading) {
+    return <FallbackLoading message="Checking authentication..." />;
+  }
 
   // Show exam interface if user is taking an exam
   if (user && currentExam) {
