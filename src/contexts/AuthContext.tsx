@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import type { Session } from '@supabase/supabase-js';
 import type { User, AuthContextType } from '../types/auth';
 import { useAuthOperations } from '../hooks/useAuthOperations';
+import { useProfileOperations } from '../hooks/useProfileOperations';
 import { handleAuthUser } from '../utils/authHelpers';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -16,12 +17,30 @@ export const useAuth = () => {
   return context;
 };
 
+interface ExtendedAuthContextType extends AuthContextType {
+  getUserProfile: (userId: string) => Promise<User | null>;
+  updateUserProfile: (userId: string, updates: Partial<User>) => Promise<{ success: boolean; error?: string }>;
+  getAllProfiles: () => Promise<User[]>;
+  getProfilesByRole: (role: string) => Promise<User[]>;
+}
+
+const ExtendedAuthContext = createContext<ExtendedAuthContextType | undefined>(undefined);
+
+export const useExtendedAuth = () => {
+  const context = useContext(ExtendedAuthContext);
+  if (context === undefined) {
+    throw new Error('useExtendedAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const authOperations = useAuthOperations();
+  const profileOperations = useProfileOperations();
 
   useEffect(() => {
     console.log('Setting up auth state listener...');
@@ -114,6 +133,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(false);
   };
 
+  const extendedContextValue: ExtendedAuthContextType = {
+    user, 
+    session, 
+    login: authOperations.login,
+    logout, 
+    register: authOperations.register, 
+    resendConfirmation: authOperations.resendConfirmation, 
+    checkEmailExists: authOperations.checkEmailExists, 
+    isLoading,
+    getUserProfile: profileOperations.getUserProfile,
+    updateUserProfile: profileOperations.updateUserProfile,
+    getAllProfiles: profileOperations.getAllProfiles,
+    getProfilesByRole: profileOperations.getProfilesByRole
+  };
+
   return (
     <AuthContext.Provider 
       value={{ 
@@ -127,7 +161,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading 
       }}
     >
-      {children}
+      <ExtendedAuthContext.Provider value={extendedContextValue}>
+        {children}
+      </ExtendedAuthContext.Provider>
     </AuthContext.Provider>
   );
 };

@@ -1,16 +1,16 @@
 
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Button } from '../ui/button';
 import { 
-  Home, 
+  LayoutDashboard, 
   FileText, 
-  Calendar, 
-  BarChart3, 
-  Settings, 
-  User,
-  ArrowLeft
+  Users, 
+  BookOpen, 
+  BarChart3,
+  ClipboardList,
+  LogOut
 } from 'lucide-react';
+import { Button } from '../ui/button';
 
 interface SidebarProps {
   activeSection: string;
@@ -18,76 +18,75 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   const getMenuItems = () => {
-    const common = [
-      { id: 'dashboard', label: 'Dashboard', icon: Home },
-      { id: 'profile', label: 'Profile', icon: User },
-      { id: 'settings', label: 'Settings', icon: Settings }
+    const baseItems = [
+      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard }
     ];
 
-    if (user?.role === 'student') {
+    if (user?.role === 'admin') {
       return [
-        ...common.slice(0, 1), // Dashboard
-        { id: 'exams', label: 'Available Exams', icon: FileText },
-        { id: 'schedule', label: 'Exam Schedule', icon: Calendar },
-        { id: 'results', label: 'My Results', icon: BarChart3 },
-        ...common.slice(1) // Profile, Settings
+        ...baseItems,
+        { id: 'users', label: 'User Management', icon: Users },
+        { id: 'subjects', label: 'Subject Management', icon: BookOpen },
+        { id: 'analytics', label: 'Analytics', icon: BarChart3 }
       ];
     }
 
     if (user?.role === 'teacher') {
       return [
-        ...common.slice(0, 1), // Dashboard
-        { id: 'questions', label: 'Questions', icon: FileText },
-        { id: 'exams', label: 'Manage Exams', icon: Calendar },
-        { id: 'results', label: 'Results', icon: BarChart3 },
-        ...common.slice(1) // Profile, Settings
+        ...baseItems,
+        { id: 'exams', label: 'My Exams', icon: FileText },
+        { id: 'questions', label: 'Question Bank', icon: ClipboardList },
+        { id: 'students', label: 'My Students', icon: Users },
+        { id: 'results', label: 'Exam Results', icon: BarChart3 }
       ];
     }
 
-    return common; // Admin
+    // Student menu items
+    return [
+      ...baseItems,
+      { id: 'available-exams', label: 'Available Exams', icon: FileText },
+      { id: 'my-results', label: 'My Results', icon: BarChart3 }
+    ];
   };
 
   const menuItems = getMenuItems();
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 h-full flex flex-col">
-      <div className="p-6 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900">
-          {user?.role === 'student' ? 'Student Portal' : 
-           user?.role === 'teacher' ? 'Teacher Portal' : 'Admin Portal'}
-        </h2>
-      </div>
-      
-      <nav className="flex-1 p-4 space-y-2">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeSection === item.id;
-          
-          return (
-            <Button
-              key={item.id}
-              variant={isActive ? "default" : "ghost"}
-              className="w-full justify-start"
-              onClick={() => onSectionChange(item.id)}
-            >
-              <Icon className="w-4 h-4 mr-3" />
-              {item.label}
-            </Button>
-          );
-        })}
+    <div className="w-64 bg-white shadow-sm border-r h-[calc(100vh-4rem)] flex flex-col">
+      <nav className="flex-1 p-4">
+        <ul className="space-y-2">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <li key={item.id}>
+                <button
+                  onClick={() => onSectionChange(item.id)}
+                  className={`w-full flex items-center px-3 py-2 text-left rounded-lg transition-colors ${
+                    activeSection === item.id
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <Icon className="mr-3 h-5 w-5" />
+                  {item.label}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       </nav>
 
-      <div className="p-4 border-t border-gray-200">
-        <Button 
-          variant="outline" 
-          className="w-full justify-start"
-          onClick={() => window.history.back()}
+      <div className="p-4 border-t">
+        <Button
+          variant="outline"
+          onClick={logout}
+          className="w-full flex items-center justify-center"
         >
-          <ArrowLeft className="w-4 h-4 mr-3" />
-          Go Back
+          <LogOut className="mr-2 h-4 w-4" />
+          Sign Out
         </Button>
       </div>
     </div>
