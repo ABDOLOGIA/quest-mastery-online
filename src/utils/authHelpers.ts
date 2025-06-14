@@ -49,8 +49,8 @@ export const handleAuthUser = async (session: Session): Promise<User | null> => 
             email: session.user.email,
             name: userMetadata.name || session.user.email?.split('@')[0] || 'User',
             role: (userMetadata.role as UserRole) || 'student',
-            department: userMetadata.department,
-            student_id: userMetadata.studentId
+            department: userMetadata.department || null,
+            student_id: userMetadata.studentId || null
           };
 
           console.log('Attempting to create profile:', profileData);
@@ -69,8 +69,8 @@ export const handleAuthUser = async (session: Session): Promise<User | null> => 
               email: session.user.email || '',
               name: userMetadata.name || session.user.email?.split('@')[0] || 'User',
               role: (userMetadata.role as UserRole) || 'student',
-              department: userMetadata.department,
-              studentId: userMetadata.studentId,
+              department: userMetadata.department || undefined,
+              studentId: userMetadata.studentId || undefined,
               emailConfirmed: true
             };
           }
@@ -95,8 +95,8 @@ export const handleAuthUser = async (session: Session): Promise<User | null> => 
             email: session.user.email || '',
             name: userMetadata.name || session.user.email?.split('@')[0] || 'User',
             role: (userMetadata.role as UserRole) || 'student',
-            department: userMetadata.department,
-            studentId: userMetadata.studentId,
+            department: userMetadata.department || undefined,
+            studentId: userMetadata.studentId || undefined,
             emailConfirmed: true
           };
         }
@@ -109,8 +109,8 @@ export const handleAuthUser = async (session: Session): Promise<User | null> => 
           email: session.user.email || '',
           name: userMetadata.name || session.user.email?.split('@')[0] || 'User',
           role: (userMetadata.role as UserRole) || 'student',
-          department: userMetadata.department,
-          studentId: userMetadata.studentId,
+          department: userMetadata.department || undefined,
+          studentId: userMetadata.studentId || undefined,
           emailConfirmed: true
         };
       }
@@ -123,8 +123,8 @@ export const handleAuthUser = async (session: Session): Promise<User | null> => 
         email: session.user.email || '',
         name: userMetadata.name || session.user.email?.split('@')[0] || 'User',
         role: (userMetadata.role as UserRole) || 'student',
-        department: userMetadata.department,
-        studentId: userMetadata.studentId,
+        department: userMetadata.department || undefined,
+        studentId: userMetadata.studentId || undefined,
         emailConfirmed: false
       };
     }

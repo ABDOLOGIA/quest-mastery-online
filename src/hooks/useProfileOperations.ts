@@ -1,4 +1,3 @@
-
 import { supabase } from '../lib/supabase';
 import type { User, UserRole } from '../types/auth';
 
@@ -51,9 +50,9 @@ export const useProfileOperations = () => {
         .from('profiles')
         .update({
           name: updates.name,
-          department: updates.department,
-          student_id: updates.studentId,
-          avatar: updates.avatar,
+          department: updates.department || null,
+          student_id: updates.studentId || null,
+          avatar: updates.avatar || null,
           updated_at: new Date().toISOString()
         })
         .eq('id', userId);
