@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
@@ -105,7 +106,7 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       let query = supabase.from('exams').select(`
         *,
-        subjects:subject_id(name),
+        subjects!exams_subject_id_fkey(name),
         questions(*)
       `);
 
