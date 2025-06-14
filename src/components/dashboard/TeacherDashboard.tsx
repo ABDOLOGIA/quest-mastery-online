@@ -18,7 +18,8 @@ import {
   Clock,
   CheckCircle,
   Eye,
-  ArrowLeft
+  ArrowLeft,
+  RefreshCw
 } from 'lucide-react';
 
 interface TeacherStats {
@@ -40,6 +41,7 @@ const TeacherDashboard: React.FC = () => {
     activeExamsCount: 0
   });
   const [showExamForm, setShowExamForm] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const myExams = exams.filter(exam => exam.createdBy === user?.id);
 
@@ -57,6 +59,27 @@ const TeacherDashboard: React.FC = () => {
       activeExamsCount: myExams.filter(e => e.isActive).length
     }));
   }, [myExams]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadExams();
+      await loadTeacherStats();
+      toast({
+        title: "Refreshed",
+        description: "Exam data has been updated.",
+      });
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh data.",
+        variant: "destructive",
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const loadTeacherStats = async () => {
     if (!user || user.role !== 'teacher') return;
@@ -127,7 +150,7 @@ const TeacherDashboard: React.FC = () => {
       
       toast({
         title: "Success!",
-        description: "Exam created successfully and is now available to students.",
+        description: "Exam created successfully and is now available.",
       });
     } catch (error) {
       console.error('Error after exam creation:', error);
@@ -146,6 +169,14 @@ const TeacherDashboard: React.FC = () => {
           <h2 className="text-2xl font-bold text-gray-900">Teacher Dashboard</h2>
           <p className="text-gray-600">Manage your exams and track student progress.</p>
         </div>
+        <Button 
+          variant="outline" 
+          onClick={handleRefresh}
+          disabled={refreshing || isLoading}
+        >
+          <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -225,16 +256,23 @@ const TeacherDashboard: React.FC = () => {
           ) : (
             <>
               <div className="flex justify-between items-center">
-                <h3 className="text-xl font-semibold">My Exams</h3>
-                <Button onClick={() => setShowExamForm(true)}>
-                  <PlusCircle className="w-4 h-4 mr-2" />
-                  Create New Exam
-                </Button>
+                <h3 className="text-xl font-semibold">My Exams ({myExams.length})</h3>
+                <div className="flex space-x-2">
+                  <Button variant="outline" onClick={handleRefresh} disabled={refreshing || isLoading}>
+                    <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                  <Button onClick={() => setShowExamForm(true)}>
+                    <PlusCircle className="w-4 h-4 mr-2" />
+                    Create New Exam
+                  </Button>
+                </div>
               </div>
 
-              {isLoading ? (
+              {isLoading || refreshing ? (
                 <Card>
                   <CardContent className="p-8 text-center">
+                    <RefreshCw className="w-8 h-8 text-gray-400 mx-auto mb-3 animate-spin" />
                     <p className="text-gray-500">Loading exams...</p>
                   </CardContent>
                 </Card>
@@ -243,6 +281,7 @@ const TeacherDashboard: React.FC = () => {
                   <CardContent className="p-8 text-center">
                     <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                     <p className="text-gray-500">No exams created yet</p>
+                    <p className="text-sm text-gray-400 mt-1">Create your first exam to get started</p>
                     <Button className="mt-4" onClick={() => setShowExamForm(true)}>
                       <PlusCircle className="w-4 h-4 mr-2" />
                       Create Your First Exam
@@ -258,6 +297,7 @@ const TeacherDashboard: React.FC = () => {
                           <div className="flex-1">
                             <h3 className="text-lg font-semibold text-gray-900">{exam.title}</h3>
                             <p className="text-gray-600 mt-1">{exam.description}</p>
+                            <p className="text-sm text-blue-600 font-medium mt-1">Subject: {exam.subject}</p>
                             <div className="flex items-center mt-3 space-x-4 text-sm text-gray-500">
                               <div className="flex items-center">
                                 <Clock className="w-4 h-4 mr-1" />
@@ -272,6 +312,15 @@ const TeacherDashboard: React.FC = () => {
                                 {exam.totalPoints} points
                               </div>
                             </div>
+                            {exam.alwaysAvailable ? (
+                              <p className="text-xs text-green-600 font-medium mt-2">
+                                ✓ Always available
+                              </p>
+                            ) : (
+                              <p className="text-xs text-gray-500 mt-2">
+                                Available: {new Date(exam.startTime).toLocaleString()} - {new Date(exam.endTime).toLocaleString()}
+                              </p>
+                            )}
                           </div>
                           <div className="ml-4 text-right space-y-2">
                             <Badge variant={exam.isActive ? "default" : "secondary"}>

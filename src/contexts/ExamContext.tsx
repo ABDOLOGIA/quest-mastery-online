@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
@@ -103,6 +104,8 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     setIsLoading(true);
     try {
+      console.log('Loading exams for user:', user.id, 'role:', user.role);
+      
       let query = supabase.from('exams').select(`
         *,
         subjects!exams_subject_id_fkey(name),
@@ -119,7 +122,7 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       // Admins see all exams
 
-      const { data, error } = await query;
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error loading exams:', error);
@@ -136,7 +139,7 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
           subject: exam.subjects?.name || 'General',
           duration: exam.duration_minutes,
           startTime: new Date(exam.start_time || Date.now()),
-          endTime: new Date(exam.end_time || Date.now() + 24 * 60 * 60 * 1000),
+          endTime: new Date(exam.end_time || Date.now() + 30 * 24 * 60 * 60 * 1000),
           totalPoints: exam.total_marks,
           isActive: exam.is_published,
           allowReview: true,
@@ -204,7 +207,7 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const createExam = async (examData: Omit<Exam, 'id'>) => {
     if (!user || (user.role !== 'teacher' && user.role !== 'admin')) {
       console.error('Unauthorized: Only teachers and admins can create exams');
-      return;
+      throw new Error('Unauthorized: Only teachers and admins can create exams');
     }
 
     try {
@@ -265,7 +268,7 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       console.log('Exam created successfully:', examResult);
 
-      // Create questions
+      // Create questions if any
       if (examData.questions.length > 0) {
         const questionsData = examData.questions.map((question, index) => ({
           exam_id: examResult.id,
@@ -293,7 +296,7 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Questions created successfully');
       }
 
-      // Reload exams to get the new one
+      // Immediately reload exams to get the new one
       await loadExams();
       console.log('Exam creation completed successfully');
     } catch (error) {
