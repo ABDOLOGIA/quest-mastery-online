@@ -26,6 +26,8 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  const [emailCheckLoading, setEmailCheckLoading] = useState(false);
+  const [emailExists, setEmailExists] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState({
     hasMinLength: false,
     hasUppercase: false,
@@ -33,7 +35,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
     hasNumber: false,
     hasSpecialChar: false
   });
-  const { register, resendConfirmation, isLoading } = useAuth();
+  const { register, resendConfirmation, checkEmailExists, isLoading } = useAuth();
 
   const validatePasswordStrength = (password: string) => {
     const strength = {
@@ -47,6 +49,23 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
     return Object.values(strength).every(Boolean);
   };
 
+  const handleEmailBlur = async () => {
+    if (formData.email && formData.email.includes('@')) {
+      setEmailCheckLoading(true);
+      setEmailExists(false);
+      setError('');
+      
+      const result = await checkEmailExists(formData.email);
+      if (result.exists) {
+        setEmailExists(true);
+        setError('This email address is already registered. Please try logging in instead.');
+      } else if (result.error) {
+        setError(result.error);
+      }
+      setEmailCheckLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -55,6 +74,11 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
 
     if (!formData.name || !formData.email || !formData.password) {
       setError('Please fill in all required fields');
+      return;
+    }
+
+    if (emailExists) {
+      setError('This email address is already registered. Please try logging in instead.');
       return;
     }
 
@@ -76,7 +100,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
     const result = await register(formData);
     if (result.success) {
       if (result.needsConfirmation) {
-        setSuccess('Registration successful! Please check your email and click the confirmation link before logging in.');
+        setSuccess('Registration successful! Please check your email and click the confirmation link to activate your account.');
         setNeedsConfirmation(true);
       } else {
         setSuccess('Registration successful! You can now log in.');
@@ -91,6 +115,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
         department: '',
         studentId: ''
       });
+      setEmailExists(false);
     } else {
       setError(result.error || 'Registration failed. Please try again.');
     }
@@ -104,7 +129,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
 
     const result = await resendConfirmation(formData.email);
     if (result.success) {
-      setSuccess('Confirmation email sent! Please check your inbox.');
+      setSuccess('Confirmation email sent! Please check your inbox and spam folder.');
     } else {
       setError(result.error || 'Failed to resend confirmation email');
     }
@@ -114,6 +139,10 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (field === 'password') {
       validatePasswordStrength(value);
+    }
+    if (field === 'email') {
+      setEmailExists(false);
+      setError('');
     }
   };
 
@@ -165,10 +194,20 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
                     placeholder="Enter your email"
                     value={formData.email}
                     onChange={(e) => handleChange('email', e.target.value)}
-                    className="pl-10"
-                    disabled={isLoading}
+                    onBlur={handleEmailBlur}
+                    className={`pl-10 ${emailExists ? 'border-red-500 focus:border-red-500' : ''}`}
+                    disabled={isLoading || emailCheckLoading}
                   />
+                  {emailCheckLoading && (
+                    <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-gray-400" />
+                  )}
+                  {emailExists && (
+                    <X className="absolute right-3 top-3 h-4 w-4 text-red-500" />
+                  )}
                 </div>
+                {emailExists && (
+                  <p className="text-sm text-red-600">This email is already registered</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -284,7 +323,10 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
               )}
 
               {needsConfirmation && (
-                <div className="text-center">
+                <div className="text-center space-y-3">
+                  <p className="text-sm text-gray-600">
+                    Didn't receive the email? Check your spam folder or click below to resend.
+                  </p>
                   <Button 
                     type="button" 
                     variant="outline" 
@@ -301,7 +343,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
               <Button 
                 type="submit" 
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600" 
-                disabled={isLoading}
+                disabled={isLoading || emailExists || emailCheckLoading}
               >
                 {isLoading ? (
                   <>

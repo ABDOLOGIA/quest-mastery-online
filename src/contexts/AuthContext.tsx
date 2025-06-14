@@ -22,6 +22,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   register: (userData: Partial<User> & { password: string }) => Promise<{ success: boolean; error?: string; needsConfirmation?: boolean }>;
   resendConfirmation: (email: string) => Promise<{ success: boolean; error?: string }>;
+  checkEmailExists: (email: string) => Promise<{ exists: boolean; error?: string }>;
   isLoading: boolean;
 }
 
@@ -196,6 +197,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const checkEmailExists = async (email: string): Promise<{ exists: boolean; error?: string }> => {
+    try {
+      console.log('Checking if email exists:', email);
+      
+      // Check if user exists in profiles table
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('email', email.toLowerCase())
+        .maybeSingle();
+      
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.error('Error checking email in profiles:', profileError);
+        return { exists: false, error: 'Unable to verify email availability' };
+      }
+      
+      if (profile) {
+        console.log('Email found in profiles table');
+        return { exists: true };
+      }
+      
+      // If not in profiles, check auth.users via a sign-in attempt
+      // This is a workaround since we can't directly query auth.users
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: 'dummy-password-for-check'
+      });
+      
+      // If we get "Invalid login credentials", the user exists but password is wrong
+      // If we get "Email not confirmed", the user exists but needs confirmation
+      if (signInError) {
+        if (signInError.message.includes('Invalid login credentials') || 
+            signInError.message.includes('Email not confirmed')) {
+          console.log('Email exists in auth.users (detected via sign-in error)');
+          return { exists: true };
+        }
+        
+        // If it's a different error, assume email doesn't exist
+        console.log('Email does not exist (no matching user found)');
+        return { exists: false };
+      }
+      
+      // This shouldn't happen with a dummy password, but just in case
+      return { exists: false };
+      
+    } catch (error) {
+      console.error('Error checking email existence:', error);
+      return { exists: false, error: 'Unable to verify email availability' };
+    }
+  };
+
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string; needsConfirmation?: boolean }> => {
     try {
       console.log('Attempting login for:', email);
@@ -256,6 +308,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Attempting registration for:', userData.email);
       
+      // First check if email already exists
+      const emailCheck = await checkEmailExists(userData.email!);
+      if (emailCheck.error) {
+        return { success: false, error: emailCheck.error };
+      }
+      
+      if (emailCheck.exists) {
+        return { 
+          success: false, 
+          error: 'An account with this email address already exists. Please try logging in instead.' 
+        };
+      }
+      
       const redirectUrl = `${window.location.origin}/`;
       
       // Sign up the user with email confirmation required
@@ -280,7 +345,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (authError.message.includes('User already registered') || authError.message.includes('already been registered')) {
           return { 
             success: false, 
-            error: 'An account with this email already exists. Please try logging in instead.' 
+            error: 'An account with this email address already exists. Please try logging in instead.' 
           };
         }
         
@@ -342,7 +407,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, login, logout, register, resendConfirmation, isLoading }}>
+    <AuthContext.Provider value={{ user, session, login, logout, register, resendConfirmation, checkEmailExists, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
