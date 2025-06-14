@@ -1,14 +1,19 @@
-
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ui/use-toast';
+import { useAuth } from '../contexts/AuthContext';
 import type { RoleRequest, RoleRequestForm } from '../types/roles';
 
 export const useRoleManagement = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const submitRoleRequest = async (requestData: RoleRequestForm): Promise<{ success: boolean; error?: string }> => {
+    if (!user) {
+      return { success: false, error: 'User not authenticated' };
+    }
+
     setIsLoading(true);
     try {
       console.log('Submitting role request:', requestData);
@@ -16,6 +21,7 @@ export const useRoleManagement = () => {
       const { error } = await supabase
         .from('role_requests')
         .insert({
+          user_id: user.id,
           requested_role: requestData.requested_role,
           reason: requestData.reason
         });
