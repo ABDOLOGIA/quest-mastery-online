@@ -31,7 +31,7 @@ interface TeacherStats {
 
 const TeacherDashboard: React.FC = () => {
   const { user } = useAuth();
-  const { exams, loadExams, isLoading } = useExam();
+  const { exams, loadExams, isLoading, getAllStudents } = useExam();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState<TeacherStats>({
@@ -42,6 +42,7 @@ const TeacherDashboard: React.FC = () => {
   });
   const [showExamForm, setShowExamForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [allStudents, setAllStudents] = useState<any[]>([]);
 
   const myExams = exams.filter(exam => exam.createdBy === user?.id);
 
@@ -49,6 +50,7 @@ const TeacherDashboard: React.FC = () => {
     if (user) {
       loadTeacherStats();
       loadExams();
+      loadAllStudents();
     }
   }, [user]);
 
@@ -60,14 +62,28 @@ const TeacherDashboard: React.FC = () => {
     }));
   }, [myExams]);
 
+  const loadAllStudents = async () => {
+    try {
+      const students = await getAllStudents();
+      setAllStudents(students);
+      setStats(prev => ({
+        ...prev,
+        studentCount: students.length
+      }));
+    } catch (error) {
+      console.error('Error loading students:', error);
+    }
+  };
+
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
       await loadExams();
       await loadTeacherStats();
+      await loadAllStudents();
       toast({
         title: "Refreshed",
-        description: "Exam data has been updated.",
+        description: "Data has been updated.",
       });
     } catch (error) {
       console.error('Error refreshing data:', error);
@@ -85,17 +101,9 @@ const TeacherDashboard: React.FC = () => {
     if (!user || user.role !== 'teacher') return;
 
     try {
-      // Get student count for this teacher
-      const { data: studentCountData, error: studentError } = await supabase
-        .rpc('get_teacher_student_count', { teacher_id_param: user.id });
-
       // Get pending grading count
       const { data: pendingGradingData, error: gradingError } = await supabase
         .rpc('get_pending_grading_count', { teacher_id_param: user.id });
-
-      if (studentError) {
-        console.error('Error fetching student count:', studentError);
-      }
 
       if (gradingError) {
         console.error('Error fetching pending grading count:', gradingError);
@@ -103,7 +111,6 @@ const TeacherDashboard: React.FC = () => {
 
       setStats(prev => ({
         ...prev,
-        studentCount: studentCountData || 0,
         pendingGrading: pendingGradingData || 0
       }));
     } catch (error) {
@@ -180,10 +187,11 @@ const TeacherDashboard: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="questions">Questions</TabsTrigger>
           <TabsTrigger value="exams">Exams</TabsTrigger>
+          <TabsTrigger value="students">Students</TabsTrigger>
           <TabsTrigger value="results">Results</TabsTrigger>
         </TabsList>
 
@@ -345,6 +353,56 @@ const TeacherDashboard: React.FC = () => {
               )}
             </>
           )}
+        </TabsContent>
+
+        <TabsContent value="students" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <Users className="w-5 h-5 mr-2 text-blue-600" />
+                  All Students ({allStudents.length})
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleRefresh}
+                  disabled={refreshing || isLoading}
+                >
+                  <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {allStudents.length === 0 ? (
+                <div className="text-center py-8">
+                  <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-500">No students found</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {allStudents.map((student) => (
+                    <div key={student.id} className="p-4 border border-gray-200 rounded-lg">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-medium text-gray-900">{student.name}</h4>
+                          <p className="text-sm text-gray-600">{student.email}</p>
+                          {student.student_id && (
+                            <p className="text-sm text-blue-600">ID: {student.student_id}</p>
+                          )}
+                          {student.department && (
+                            <p className="text-sm text-gray-500">Department: {student.department}</p>
+                          )}
+                        </div>
+                        <Badge variant="secondary">Student</Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="results">

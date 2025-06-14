@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useExam } from '../../contexts/ExamContext';
@@ -44,22 +43,23 @@ const StudentDashboard: React.FC = () => {
     setRefreshing(false);
   };
 
+  // Filter published exams for students
+  const publishedExams = exams.filter(exam => exam.isActive);
+  
   // Filter exams based on current time and submission status
   const now = new Date();
-  const availableExams = exams.filter(exam => {
+  const availableExams = publishedExams.filter(exam => {
     // If exam is always available, show it regardless of time
     if (exam.alwaysAvailable) {
-      return exam.isActive && !hasSubmittedExam(exam.id, user?.id || '');
+      return !hasSubmittedExam(exam.id, user?.id || '');
     }
     // Otherwise, check time constraints
-    return exam.isActive && 
-           new Date(exam.startTime) <= now && 
+    return new Date(exam.startTime) <= now && 
            new Date(exam.endTime) >= now &&
            !hasSubmittedExam(exam.id, user?.id || '');
   });
   
-  const upcomingExams = exams.filter(exam => 
-    exam.isActive && 
+  const upcomingExams = publishedExams.filter(exam => 
     !exam.alwaysAvailable && // Don't show always available exams as upcoming
     new Date(exam.startTime) > now
   );
@@ -178,7 +178,7 @@ const StudentDashboard: React.FC = () => {
           ) : (
             <div className="space-y-4">
               {completedExams.slice(0, 5).map((attempt) => {
-                const exam = exams.find(e => e.id === attempt.examId);
+                const exam = publishedExams.find(e => e.id === attempt.examId);
                 return (
                   <div key={attempt.id} className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
                     <div>
@@ -233,7 +233,7 @@ const StudentDashboard: React.FC = () => {
         <CardTitle className="flex items-center justify-between text-slate-800">
           <div className="flex items-center">
             <FileText className="w-5 h-5 mr-2 text-blue-600" />
-            Available Exams
+            Available Exams ({availableExams.length})
           </div>
           <Button 
             variant="outline" 
@@ -268,6 +268,7 @@ const StudentDashboard: React.FC = () => {
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-slate-900">{exam.title}</h3>
                     <p className="text-slate-600 mt-1">{exam.description}</p>
+                    <p className="text-sm text-blue-600 font-medium mt-1">Subject: {exam.subject}</p>
                     <div className="flex items-center mt-3 space-x-4 text-sm text-slate-500">
                       <div className="flex items-center">
                         <Clock className="w-4 h-4 mr-1" />
@@ -398,7 +399,7 @@ const StudentDashboard: React.FC = () => {
         ) : (
           <div className="space-y-4">
             {completedExams.map((attempt) => {
-              const exam = exams.find(e => e.id === attempt.examId);
+              const exam = publishedExams.find(e => e.id === attempt.examId);
               return (
                 <div key={attempt.id} className="p-4 border border-slate-200 rounded-lg">
                   <div className="flex justify-between items-start">
@@ -474,7 +475,7 @@ const StudentDashboard: React.FC = () => {
         <nav className="-mb-px flex space-x-8">
           {[
             { id: 'overview', label: 'Overview', icon: BarChart3 },
-            { id: 'available', label: 'Available Exams', icon: FileText },
+            { id: 'available', label: `Available Exams (${availableExams.length})`, icon: FileText },
             { id: 'schedule', label: 'Exam Schedule', icon: Calendar },
             { id: 'results', label: 'My Results', icon: Award }
           ].map((tab) => {

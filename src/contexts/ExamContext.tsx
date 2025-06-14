@@ -70,6 +70,7 @@ interface ExamContextType {
   setCurrentAttempt: (attempt: ExamAttempt | null) => void;
   loadExams: () => Promise<void>;
   isLoading: boolean;
+  getAllStudents: () => Promise<any[]>;
 }
 
 const ExamContext = createContext<ExamContextType | undefined>(undefined);
@@ -98,6 +99,25 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       loadAttempts();
     }
   }, [user]);
+
+  const getAllStudents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', 'student');
+
+      if (error) {
+        console.error('Error loading students:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error in getAllStudents:', error);
+      return [];
+    }
+  };
 
   const loadExams = async () => {
     if (!user) return;
@@ -437,7 +457,8 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCurrentExam,
       setCurrentAttempt,
       loadExams,
-      isLoading
+      isLoading,
+      getAllStudents
     }}>
       {children}
     </ExamContext.Provider>
