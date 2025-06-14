@@ -95,13 +95,15 @@ export const useExamActions = (
   const submitAnswer = (questionId: string, answer: string | string[]) => {
     if (!currentAttempt) return;
 
-    setCurrentAttempt(prev => prev ? {
-      ...prev,
+    const updatedAttempt = {
+      ...currentAttempt,
       answers: {
-        ...prev.answers,
+        ...currentAttempt.answers,
         [questionId]: answer
       }
-    } : null);
+    };
+
+    setCurrentAttempt(updatedAttempt);
 
     setAttempts(prev => prev.map(attempt => 
       attempt.id === currentAttempt.id 
