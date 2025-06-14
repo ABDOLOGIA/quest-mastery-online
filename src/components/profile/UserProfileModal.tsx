@@ -41,31 +41,29 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      // Use the provided userId or fall back to current user's ID
-      const targetUserId = userId || currentUser?.id;
-      if (targetUserId) {
-        loadUserProfile(targetUserId);
-      } else if (currentUser) {
-        // If no userId provided and we have a current user, display current user info
-        setUser(currentUser);
-        setEditForm({
-          name: currentUser.name,
-          studentId: currentUser.studentId || '',
-          avatar: currentUser.avatar || '',
-          department: currentUser.department || ''
-        });
-      }
+      loadUserData();
     }
   }, [isOpen, userId, currentUser]);
 
-  const loadUserProfile = async (targetUserId: string) => {
+  const loadUserData = async () => {
     setIsLoading(true);
     setError('');
+    setUser(null);
     
     try {
+      const targetUserId = userId || currentUser?.id;
+      
+      if (!targetUserId) {
+        setError('No user ID available');
+        setIsLoading(false);
+        return;
+      }
+
       console.log('Loading profile for userId:', targetUserId);
+      
+      // Try to get profile from backend first
       const profile = await getUserProfile(targetUserId);
-      console.log('Profile loaded:', profile);
+      console.log('Profile from backend:', profile);
       
       if (profile) {
         setUser(profile);
@@ -74,6 +72,16 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
           studentId: profile.studentId || '',
           avatar: profile.avatar || '',
           department: profile.department || ''
+        });
+      } else if (currentUser && targetUserId === currentUser.id) {
+        // If no backend profile but we have current user data, display that
+        console.log('Using current user data:', currentUser);
+        setUser(currentUser);
+        setEditForm({
+          name: currentUser.name,
+          studentId: currentUser.studentId || '',
+          avatar: currentUser.avatar || '',
+          department: currentUser.department || ''
         });
       } else {
         setError('User profile not found');
@@ -103,7 +111,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     if (result.success) {
       setSuccess('Profile updated successfully');
       setIsEditing(false);
-      await loadUserProfile(user.id);
+      await loadUserData();
     } else {
       setError(result.error || 'Failed to update profile');
     }
@@ -157,10 +165,30 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
         {isLoading && (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <span className="ml-2 text-gray-600">Loading profile...</span>
           </div>
         )}
 
-        {!isLoading && user && (
+        {!isLoading && error && (
+          <div className="text-center py-8">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+                <AlertCircle className="w-8 h-8 text-red-500" />
+              </div>
+              <div>
+                <p className="text-red-600 font-medium">{error}</p>
+                <button 
+                  onClick={loadUserData}
+                  className="text-blue-600 hover:text-blue-700 text-sm mt-2"
+                >
+                  Try again
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!isLoading && !error && user && (
           <div className="space-y-6">
             {/* Avatar and Basic Info */}
             <div className="flex flex-col items-center space-y-4">
@@ -295,13 +323,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
             </div>
 
             {/* Messages */}
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
             {success && (
               <Alert className="border-green-200 bg-green-50 text-green-800">
                 <Check className="h-4 w-4" />
