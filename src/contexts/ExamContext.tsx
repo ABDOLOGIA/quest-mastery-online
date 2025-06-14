@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
@@ -132,11 +133,10 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       loadStudentExams();
       loadDashboardStats();
       loadAllStudents();
-      setupRealTimeSubscriptions();
     }
   }, [user]);
 
-  const setupRealTimeSubscriptions = () => {
+  useEffect(() => {
     if (!user) return;
 
     // Subscribe to exam changes
@@ -175,11 +175,12 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       )
       .subscribe();
 
+    // Cleanup function to remove channels when component unmounts or user changes
     return () => {
       supabase.removeChannel(examChannel);
       supabase.removeChannel(studentExamChannel);
     };
-  };
+  }, [user]);
 
   const loadDashboardStats = async () => {
     if (!user) return;
@@ -323,7 +324,7 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let query = supabase.from('exams').select(`
         *,
         subjects!exams_subject_id_fkey(name),
-        questions(*)
+        questions!inner(*)
       `);
 
       // Students can only see published exams
