@@ -1,3 +1,4 @@
+
 import { supabase } from '../lib/supabase';
 import type { User, UserRole, AuthResult, EmailCheckResult } from '../types/auth';
 
@@ -19,7 +20,6 @@ export const useAuthOperations = () => {
       
       if (profileError && profileError.code !== 'PGRST116') {
         console.error('Error checking email in profiles:', profileError);
-        // Don't block registration if we can't check - just proceed
         return { exists: false };
       }
       
@@ -28,41 +28,67 @@ export const useAuthOperations = () => {
         return { exists: true };
       }
       
-      // If not in profiles, try a simple auth check by attempting to sign in with a dummy password
-      // This is a common pattern to check if an email exists in auth.users
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: 'dummy-check-password-12345'
-      });
-      
-      if (signInError) {
-        // If we get "Invalid login credentials", the email exists but password is wrong
-        // If we get "Email not confirmed", the email exists but isn't confirmed yet
-        if (signInError.message.includes('Invalid login credentials') || 
-            signInError.message.includes('Email not confirmed') ||
-            signInError.message.includes('too many requests')) {
-          console.log('Email exists in auth.users (detected via sign-in error)');
-          return { exists: true };
-        }
-        
-        // Any other error likely means the email doesn't exist
-        console.log('Email does not exist (no matching user found)');
-        return { exists: false };
-      }
-      
-      // This shouldn't happen with a dummy password, but just in case
       return { exists: false };
       
     } catch (error) {
       console.error('Error checking email existence:', error);
-      // Don't block registration if email check fails - just proceed
       return { exists: false };
     }
   };
 
-  const login = async (email: string, password: string): Promise<AuthResult> => {
+  const checkStudentIdExists = async (studentId: string): Promise<EmailCheckResult> => {
     try {
-      console.log('Attempting login for:', email);
+      console.log('Checking if student ID exists:', studentId);
+      
+      if (!studentId) {
+        return { exists: false, error: 'Please enter a valid student ID' };
+      }
+      
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('student_id, email')
+        .eq('student_id', studentId)
+        .maybeSingle();
+      
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.error('Error checking student ID in profiles:', profileError);
+        return { exists: false };
+      }
+      
+      if (profile) {
+        console.log('Student ID found in profiles table');
+        return { exists: true, email: profile.email };
+      }
+      
+      return { exists: false };
+      
+    } catch (error) {
+      console.error('Error checking student ID existence:', error);
+      return { exists: false };
+    }
+  };
+
+  const login = async (emailOrStudentId: string, password: string): Promise<AuthResult> => {
+    try {
+      console.log('Attempting login for:', emailOrStudentId);
+      
+      let email = emailOrStudentId;
+      
+      // Check if input looks like a student ID (doesn't contain @)
+      if (!emailOrStudentId.includes('@')) {
+        console.log('Input appears to be a student ID, looking up email...');
+        const studentIdCheck = await checkStudentIdExists(emailOrStudentId);
+        
+        if (studentIdCheck.exists && studentIdCheck.email) {
+          email = studentIdCheck.email;
+          console.log('Found email for student ID:', email);
+        } else {
+          return { 
+            success: false, 
+            error: 'Student ID not found. Please check your student ID and try again.' 
+          };
+        }
+      }
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -83,7 +109,7 @@ export const useAuthOperations = () => {
         if (error.message.includes('Invalid login credentials')) {
           return { 
             success: false, 
-            error: 'Invalid email or password. Please check your credentials and try again.' 
+            error: 'Invalid credentials. Please check your email/student ID and password.' 
           };
         }
         
@@ -127,6 +153,17 @@ export const useAuthOperations = () => {
           success: false, 
           error: 'An account with this email address already exists. Please try logging in instead.' 
         };
+      }
+
+      // Check if student ID already exists (for students)
+      if (userData.role === 'student' && userData.studentId) {
+        const studentIdCheck = await checkStudentIdExists(userData.studentId);
+        if (studentIdCheck.exists) {
+          return { 
+            success: false, 
+            error: 'This student ID is already registered. Please use a different student ID or try logging in.' 
+          };
+        }
       }
       
       const redirectUrl = `${window.location.origin}/`;
@@ -208,6 +245,7 @@ export const useAuthOperations = () => {
 
   return {
     checkEmailExists,
+    checkStudentIdExists,
     login,
     register,
     resendConfirmation,

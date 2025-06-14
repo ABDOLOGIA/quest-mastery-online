@@ -14,7 +14,7 @@ interface LoginFormProps {
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassword }) => {
-  const [email, setEmail] = useState('');
+  const [emailOrStudentId, setEmailOrStudentId] = useState('');
   const [password, setPassword] = useState('');
   const [captcha, setCaptcha] = useState('');
   const [captchaQuestion, setCaptchaQuestion] = useState('');
@@ -62,8 +62,11 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
   };
 
   const handleResendConfirmation = async () => {
-    if (!email) {
-      setError('Please enter your email address first');
+    // For resending confirmation, we need an email address
+    let email = emailOrStudentId;
+    
+    if (!emailOrStudentId.includes('@')) {
+      setError('Please enter your email address to resend confirmation');
       return;
     }
 
@@ -85,7 +88,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
     setError('');
     setNeedsConfirmation(false);
 
-    if (!email || !password) {
+    if (!emailOrStudentId || !password) {
       setError('Please fill in all fields');
       return;
     }
@@ -98,13 +101,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
     }
 
     setIsSubmitting(true);
-    console.log('Attempting login with email:', email);
+    console.log('Attempting login with:', emailOrStudentId);
     
     try {
-      const result = await login(email, password);
+      const result = await login(emailOrStudentId, password);
       
       if (!result.success) {
-        setError(result.error || 'Invalid email or password');
+        setError(result.error || 'Invalid credentials');
         generateCaptcha();
         setCaptcha('');
         
@@ -193,15 +196,19 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-gray-200">Email or Student ID</Label>
+                <Label htmlFor="emailOrStudentId" className="text-gray-200">Email or Student ID</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-yellow-500" />
+                  {emailOrStudentId.includes('@') ? (
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-yellow-500" />
+                  ) : (
+                    <GraduationCap className="absolute left-3 top-3 h-4 w-4 text-yellow-500" />
+                  )}
                   <Input
-                    id="email"
+                    id="emailOrStudentId"
                     type="text"
                     placeholder="Enter your email or student ID"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    value={emailOrStudentId}
+                    onChange={(e) => setEmailOrStudentId(e.target.value)}
                     className="pl-10 bg-gray-900/80 border-yellow-500/30 text-white placeholder-gray-400 focus:border-yellow-500 focus:ring-yellow-500"
                     disabled={isSubmitting}
                   />
