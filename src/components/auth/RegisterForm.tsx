@@ -1,6 +1,6 @@
-
 import React, { useState } from 'react';
-import { useAuth, UserRole } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
+import type { UserRole } from '../../types/auth';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
