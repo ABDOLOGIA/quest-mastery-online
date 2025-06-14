@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
@@ -175,10 +174,29 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       )
       .subscribe();
 
-    // Cleanup function to remove channels when component unmounts or user changes
+    // Subscribe to user/student changes for real-time student count updates
+    const profilesChannel = supabase
+      .channel('profiles-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles',
+          filter: 'role=eq.student'
+        },
+        (payload) => {
+          console.log('Student profile change detected:', payload);
+          loadAllStudents();
+          loadDashboardStats();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(examChannel);
       supabase.removeChannel(studentExamChannel);
+      supabase.removeChannel(profilesChannel);
     };
   }, [user]);
 
@@ -187,42 +205,71 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       if (user.role === 'teacher') {
-        // Load teacher-specific stats
-        const [studentsResult, activeExamsResult, pendingGradingResult] = await Promise.all([
+        // Load teacher-specific stats with better error handling
+        const [studentsResult, activeExamsResult, pendingGradingResult] = await Promise.allSettled([
           supabase.rpc('get_teacher_students_count'),
           supabase.rpc('get_teacher_active_exams_count', { teacher_id_param: user.id }),
           supabase.rpc('get_teacher_pending_grading_new', { teacher_id_param: user.id })
         ]);
 
+        const studentsCount = studentsResult.status === 'fulfilled' ? studentsResult.value.data || 0 : 0;
+        const activeExamsCount = activeExamsResult.status === 'fulfilled' ? activeExamsResult.value.data || 0 : 0;
+        const pendingGradingCount = pendingGradingResult.status === 'fulfilled' ? pendingGradingResult.value.data || 0 : 0;
+
         setDashboardStats({
-          studentsCount: studentsResult.data || 0,
-          activeExamsCount: activeExamsResult.data || 0,
-          pendingGradingCount: pendingGradingResult.data || 0
+          studentsCount,
+          activeExamsCount,
+          pendingGradingCount
         });
       }
     } catch (error) {
       console.error('Error loading dashboard stats:', error);
+      toast({
+        title: "Warning",
+        description: "Some dashboard statistics could not be loaded.",
+        variant: "destructive",
+      });
     }
   };
 
   const loadAllStudents = async () => {
-    if (!user || user.role !== 'teacher') return;
+    if (!user) return;
 
     try {
+      setIsLoading(true);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('role', 'student')
-        .order('name');
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error loading students:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load student data. Please try again.",
+          variant: "destructive",
+        });
         return;
       }
 
+      console.log('Loaded students:', data);
       setAllStudents(data || []);
+      
+      // Update student count in stats
+      setDashboardStats(prev => ({
+        ...prev,
+        studentsCount: data?.length || 0
+      }));
     } catch (error) {
       console.error('Error in loadAllStudents:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while loading students.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -300,11 +347,12 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('role', 'student');
+        .eq('role', 'student')
+        .order('name');
 
       if (error) {
         console.error('Error loading students:', error);
-        return [];
+        throw error;
       }
 
       return data || [];
@@ -324,7 +372,7 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let query = supabase.from('exams').select(`
         *,
         subjects!exams_subject_id_fkey(name),
-        questions!inner(*)
+        questions(*)
       `);
 
       // Students can only see published exams
@@ -335,12 +383,16 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       else if (user.role === 'teacher') {
         query = query.eq('teacher_id', user.id);
       }
-      // Admins see all exams
 
       const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error loading exams:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load exams. Please try again.",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -378,6 +430,11 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error) {
       console.error('Error in loadExams:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while loading exams.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -421,20 +478,46 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const createExam = async (examData: Omit<Exam, 'id'>) => {
     if (!user || (user.role !== 'teacher' && user.role !== 'admin')) {
-      console.error('Unauthorized: Only teachers and admins can create exams');
-      throw new Error('Unauthorized: Only teachers and admins can create exams');
+      const errorMsg = 'Unauthorized: Only teachers and admins can create exams';
+      console.error(errorMsg);
+      toast({
+        title: "Access Denied",
+        description: errorMsg,
+        variant: "destructive",
+      });
+      throw new Error(errorMsg);
     }
 
     try {
       console.log('Creating exam with data:', examData);
+      setIsLoading(true);
+
+      // Validate required fields
+      if (!examData.title?.trim()) {
+        throw new Error('Exam title is required');
+      }
+      if (!examData.subject?.trim()) {
+        throw new Error('Subject is required');
+      }
+      if (examData.duration <= 0) {
+        throw new Error('Duration must be greater than 0');
+      }
+      if (examData.totalPoints <= 0) {
+        throw new Error('Total points must be greater than 0');
+      }
 
       // First, get or create the subject
       let subjectId;
-      const { data: existingSubject } = await supabase
+      const { data: existingSubject, error: subjectQueryError } = await supabase
         .from('subjects')
         .select('id')
-        .eq('name', examData.subject)
-        .single();
+        .eq('name', examData.subject.trim())
+        .maybeSingle();
+
+      if (subjectQueryError) {
+        console.error('Error querying subject:', subjectQueryError);
+        throw new Error('Failed to check subject. Please try again.');
+      }
 
       if (existingSubject) {
         subjectId = existingSubject.id;
@@ -443,22 +526,25 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Creating new subject:', examData.subject);
         const { data: newSubject, error: subjectError } = await supabase
           .from('subjects')
-          .insert({ name: examData.subject })
+          .insert({ 
+            name: examData.subject.trim(),
+            description: `Subject for ${examData.subject.trim()}` 
+          })
           .select('id')
           .single();
 
         if (subjectError) {
           console.error('Error creating subject:', subjectError);
-          throw subjectError;
+          throw new Error('Failed to create subject. Please try again.');
         }
         subjectId = newSubject.id;
         console.log('Created new subject:', subjectId);
       }
 
-      // Create the exam
+      // Prepare exam data for insertion
       const examToInsert = {
-        title: examData.title,
-        description: examData.description,
+        title: examData.title.trim(),
+        description: examData.description?.trim() || '',
         subject_id: subjectId,
         teacher_id: user.id,
         duration_minutes: examData.duration,
@@ -478,16 +564,16 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (examError) {
         console.error('Error creating exam:', examError);
-        throw examError;
+        throw new Error(`Failed to create exam: ${examError.message}`);
       }
 
       console.log('Exam created successfully:', examResult);
 
       // Create questions if any
-      if (examData.questions.length > 0) {
+      if (examData.questions && examData.questions.length > 0) {
         const questionsData = examData.questions.map((question, index) => ({
           exam_id: examResult.id,
-          question_text: question.question,
+          question_text: question.question.trim(),
           question_type: question.type,
           options: question.options || null,
           correct_answer: Array.isArray(question.correctAnswer) 
@@ -505,10 +591,15 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (questionsError) {
           console.error('Error creating questions:', questionsError);
-          throw questionsError;
+          // Don't throw here, exam was created successfully
+          toast({
+            title: "Warning",
+            description: "Exam created but some questions could not be saved. You can add them later.",
+            variant: "destructive",
+          });
+        } else {
+          console.log('Questions created successfully');
         }
-
-        console.log('Questions created successfully');
       }
 
       // Show success message
@@ -517,18 +608,24 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: "Exam created successfully and is now available to students!",
       });
 
-      // Immediately reload exams to get the new one
-      await loadExams();
-      await loadDashboardStats();
+      // Immediately reload exams and stats
+      await Promise.all([
+        loadExams(),
+        loadDashboardStats()
+      ]);
+      
       console.log('Exam creation completed successfully');
     } catch (error) {
       console.error('Error in createExam:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create exam. Please try again.';
       toast({
         title: "Error",
-        description: "Failed to create exam. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 

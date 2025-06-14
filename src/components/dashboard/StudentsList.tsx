@@ -4,18 +4,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
+import { Button } from '../ui/button';
 import { useExam } from '../../contexts/ExamContext';
-import { User } from 'lucide-react';
+import { users, RefreshCw } from 'lucide-react';
 
 const StudentsList = () => {
-  const { allStudents, isLoading } = useExam();
+  const { allStudents, isLoading, loadAllStudents } = useExam();
+
+  const handleRefresh = async () => {
+    await loadAllStudents();
+  };
 
   if (isLoading) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
+            <users className="h-5 w-5" />
             My Students
           </CardTitle>
         </CardHeader>
@@ -40,16 +45,37 @@ const StudentsList = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <User className="h-5 w-5" />
-          My Students ({allStudents.length})
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <users className="h-5 w-5" />
+            My Students ({allStudents.length})
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh}
+            disabled={isLoading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </CardTitle>
       </CardHeader>
       <CardContent>
         {allStudents.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <users className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>No students found in the system.</p>
+            <p className="text-sm text-gray-400 mt-1">Students will appear here when they register.</p>
+            <Button 
+              variant="outline" 
+              className="mt-4" 
+              onClick={handleRefresh}
+              disabled={isLoading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Check Again
+            </Button>
           </div>
         ) : (
           <ScrollArea className="h-96">
@@ -64,7 +90,7 @@ const StudentsList = () => {
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <h4 className="font-medium text-gray-900">{student.name}</h4>
+                      <h4 className="font-medium text-gray-900">{student.name || 'Unknown Student'}</h4>
                       <p className="text-sm text-gray-500">{student.email}</p>
                       {student.student_id && (
                         <p className="text-xs text-gray-400">ID: {student.student_id}</p>
@@ -76,7 +102,7 @@ const StudentsList = () => {
                       {student.department || 'General'}
                     </Badge>
                     <span className="text-xs text-gray-400">
-                      {new Date(student.created_at).toLocaleDateString()}
+                      Joined: {new Date(student.created_at).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
