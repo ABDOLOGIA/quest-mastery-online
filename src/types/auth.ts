@@ -41,4 +41,5 @@ export interface AuthResult {
 export interface EmailCheckResult {
   exists: boolean;
   error?: string;
+  email?: string;
 }
