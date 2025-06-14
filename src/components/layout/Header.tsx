@@ -23,6 +23,11 @@ const Header: React.FC = () => {
     }
   };
 
+  const handleProfileClick = () => {
+    console.log('Profile button clicked, opening modal');
+    setIsProfileModalOpen(true);
+  };
+
   if (!user) return null;
 
   return (
@@ -44,8 +49,8 @@ const Header: React.FC = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setIsProfileModalOpen(true)}
-              className="flex items-center space-x-2 p-2"
+              onClick={handleProfileClick}
+              className="flex items-center space-x-2 p-2 hover:bg-gray-100"
             >
               <Avatar className="w-8 h-8">
                 <AvatarImage src={user.avatar} alt={user.name} />
@@ -59,12 +64,14 @@ const Header: React.FC = () => {
         </div>
       </header>
 
-      <UserProfileModal
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
-        userId={user.id}
-        canEdit={true}
-      />
+      {user && (
+        <UserProfileModal
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+          userId={user.id}
+          canEdit={true}
+        />
+      )}
     </>
   );
 };
