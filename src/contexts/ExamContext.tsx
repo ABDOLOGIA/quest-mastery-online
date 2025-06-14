@@ -231,15 +231,17 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const createExam = async (examData: Omit<Exam, 'id'>) => {
+    if (!user) {
+      throw new Error('You must be logged in to create exams');
+    }
+
+    setIsLoading(true);
     try {
-      setIsLoading(true);
+      console.log('Creating exam with user:', user.id, 'role:', user.role);
+      console.log('Exam data to create:', examData);
+      
       await createExamInDatabase(examData, user);
       
-      toast({
-        title: "Success",
-        description: "Exam created successfully and is now available to students!",
-      });
-
       // Immediately reload exams and stats
       await Promise.all([
         loadExams(),
@@ -248,13 +250,16 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('Exam creation completed successfully');
     } catch (error) {
-      console.error('Error in createExam:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create exam. Please try again.';
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      console.error('Error in createExam context method:', error);
+      
+      // Log detailed error information for debugging
+      if (error instanceof Error) {
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
+      
+      // Re-throw the error so the component can handle it
       throw error;
     } finally {
       setIsLoading(false);
