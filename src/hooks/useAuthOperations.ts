@@ -1,4 +1,3 @@
-
 import { supabase } from '../lib/supabase';
 import type { User, UserRole, AuthResult, EmailCheckResult } from '../types/auth';
 
@@ -61,37 +60,9 @@ export const useAuthOperations = () => {
     }
   };
 
-  const login = async (emailOrStudentId: string, password: string): Promise<AuthResult> => {
+  const login = async (email: string, password: string): Promise<AuthResult> => {
     try {
-      console.log('Attempting login for:', emailOrStudentId);
-      
-      let email = emailOrStudentId;
-      
-      // Check if input looks like a student ID (not an email)
-      if (!emailOrStudentId.includes('@')) {
-        console.log('Input appears to be a student ID, looking up email');
-        
-        // Look up the email associated with this student ID
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('student_id', emailOrStudentId)
-          .eq('role', 'student')
-          .maybeSingle();
-        
-        if (profileError) {
-          console.error('Error looking up student ID:', profileError);
-          return { success: false, error: 'Invalid student ID or password' };
-        }
-        
-        if (!profile) {
-          console.log('No student found with ID:', emailOrStudentId);
-          return { success: false, error: 'Invalid student ID or password' };
-        }
-        
-        email = profile.email;
-        console.log('Found email for student ID:', email);
-      }
+      console.log('Attempting login for:', email);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -110,11 +81,9 @@ export const useAuthOperations = () => {
         }
         
         if (error.message.includes('Invalid login credentials')) {
-          // Use generic message for both email and student ID
-          const loginType = emailOrStudentId.includes('@') ? 'email or password' : 'student ID or password';
           return { 
             success: false, 
-            error: `Invalid ${loginType}. Please check your credentials and try again.` 
+            error: 'Invalid email or password. Please check your credentials and try again.' 
           };
         }
         
