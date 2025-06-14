@@ -15,10 +15,10 @@ export const useRoleManagement = () => {
       
       const { error } = await supabase
         .from('role_requests')
-        .insert([{
+        .insert({
           requested_role: requestData.requested_role,
           reason: requestData.reason
-        }]);
+        });
 
       if (error) {
         console.error('Error submitting role request:', error);
@@ -60,8 +60,8 @@ export const useRoleManagement = () => {
       return data.map(request => ({
         id: request.id,
         user_id: request.user_id,
-        requested_role: request.requested_role,
-        status: request.status,
+        requested_role: request.requested_role as 'teacher' | 'admin',
+        status: request.status as 'pending' | 'approved' | 'rejected',
         reason: request.reason,
         reviewed_by: request.reviewed_by,
         reviewed_at: request.reviewed_at,
