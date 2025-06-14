@@ -58,6 +58,20 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_exam_results_exam"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_exam_results_student"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       exams: {
@@ -113,6 +127,20 @@ export type Database = {
           },
           {
             foreignKeyName: "exams_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_exams_subject"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_exams_teacher"
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -192,6 +220,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_questions_exam"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "questions_exam_id_fkey"
             columns: ["exam_id"]
             isOneToOne: false
@@ -230,6 +265,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_pending_grading_count: {
+        Args: { teacher_id_param: string }
+        Returns: number
+      }
       get_profile_by_student_id: {
         Args: { student_id_param: string }
         Returns: {
@@ -240,6 +279,10 @@ export type Database = {
           student_id: string
           department: string
         }[]
+      }
+      get_teacher_student_count: {
+        Args: { teacher_id_param: string }
+        Returns: number
       }
     }
     Enums: {
