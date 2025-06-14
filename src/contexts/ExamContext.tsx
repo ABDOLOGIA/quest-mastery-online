@@ -83,7 +83,8 @@ export const useExam = () => {
 };
 
 export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const auth = useAuth();
+  const user = auth?.user; // Safely access user from auth context
   const [exams, setExams] = useState<Exam[]>([]);
   const [attempts, setAttempts] = useState<ExamAttempt[]>([]);
   const [submittedExams, setSubmittedExams] = useState<string[]>([]);
