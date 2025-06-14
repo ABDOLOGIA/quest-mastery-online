@@ -1,7 +1,7 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
+import { useToast } from '../hooks/use-toast';
 
 export interface Question {
   id: string;
@@ -53,12 +53,34 @@ export interface ExamAttempt {
   isTerminated?: boolean;
 }
 
+export interface StudentExam {
+  id: string;
+  studentId: string;
+  examId: string;
+  startedAt: Date;
+  submittedAt?: Date;
+  answers: Record<string, string | string[]>;
+  score?: number;
+  isGraded: boolean;
+  isSubmitted: boolean;
+  timeSpent: number;
+}
+
+export interface DashboardStats {
+  studentsCount: number;
+  activeExamsCount: number;
+  pendingGradingCount: number;
+}
+
 interface ExamContextType {
   exams: Exam[];
   attempts: ExamAttempt[];
+  studentExams: StudentExam[];
   submittedExams: string[];
   currentExam: Exam | null;
   currentAttempt: ExamAttempt | null;
+  dashboardStats: DashboardStats;
+  allStudents: any[];
   createExam: (exam: Omit<Exam, 'id'>) => Promise<void>;
   startExam: (examId: string, studentId: string) => ExamAttempt | null;
   submitAnswer: (questionId: string, answer: string | string[]) => void;
@@ -69,6 +91,8 @@ interface ExamContextType {
   setCurrentExam: (exam: Exam | null) => void;
   setCurrentAttempt: (attempt: ExamAttempt | null) => void;
   loadExams: () => Promise<void>;
+  loadDashboardStats: () => Promise<void>;
+  loadAllStudents: () => Promise<void>;
   isLoading: boolean;
   getAllStudents: () => Promise<any[]>;
 }
@@ -86,19 +110,164 @@ export const useExam = () => {
 export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const auth = useAuth();
   const user = auth?.user;
+  const { toast } = useToast();
   const [exams, setExams] = useState<Exam[]>([]);
   const [attempts, setAttempts] = useState<ExamAttempt[]>([]);
+  const [studentExams, setStudentExams] = useState<StudentExam[]>([]);
   const [submittedExams, setSubmittedExams] = useState<string[]>([]);
   const [currentExam, setCurrentExam] = useState<Exam | null>(null);
   const [currentAttempt, setCurrentAttempt] = useState<ExamAttempt | null>(null);
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
+    studentsCount: 0,
+    activeExamsCount: 0,
+    pendingGradingCount: 0
+  });
+  const [allStudents, setAllStudents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
       loadExams();
       loadAttempts();
+      loadStudentExams();
+      loadDashboardStats();
+      loadAllStudents();
+      setupRealTimeSubscriptions();
     }
   }, [user]);
+
+  const setupRealTimeSubscriptions = () => {
+    if (!user) return;
+
+    // Subscribe to exam changes
+    const examChannel = supabase
+      .channel('exam-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'exams'
+        },
+        (payload) => {
+          console.log('Exam change detected:', payload);
+          loadExams();
+          loadDashboardStats();
+        }
+      )
+      .subscribe();
+
+    // Subscribe to student exam submissions
+    const studentExamChannel = supabase
+      .channel('student-exam-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'student_exams'
+        },
+        (payload) => {
+          console.log('Student exam change detected:', payload);
+          loadStudentExams();
+          loadDashboardStats();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(examChannel);
+      supabase.removeChannel(studentExamChannel);
+    };
+  };
+
+  const loadDashboardStats = async () => {
+    if (!user) return;
+
+    try {
+      if (user.role === 'teacher') {
+        // Load teacher-specific stats
+        const [studentsResult, activeExamsResult, pendingGradingResult] = await Promise.all([
+          supabase.rpc('get_teacher_students_count'),
+          supabase.rpc('get_teacher_active_exams_count', { teacher_id_param: user.id }),
+          supabase.rpc('get_teacher_pending_grading_new', { teacher_id_param: user.id })
+        ]);
+
+        setDashboardStats({
+          studentsCount: studentsResult.data || 0,
+          activeExamsCount: activeExamsResult.data || 0,
+          pendingGradingCount: pendingGradingResult.data || 0
+        });
+      }
+    } catch (error) {
+      console.error('Error loading dashboard stats:', error);
+    }
+  };
+
+  const loadAllStudents = async () => {
+    if (!user || user.role !== 'teacher') return;
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', 'student')
+        .order('name');
+
+      if (error) {
+        console.error('Error loading students:', error);
+        return;
+      }
+
+      setAllStudents(data || []);
+    } catch (error) {
+      console.error('Error in loadAllStudents:', error);
+    }
+  };
+
+  const loadStudentExams = async () => {
+    if (!user) return;
+
+    try {
+      let query = supabase.from('student_exams').select('*');
+      
+      if (user.role === 'student') {
+        query = query.eq('student_id', user.id);
+      } else if (user.role === 'teacher') {
+        // Teachers can see student exams for their exams
+        query = query.select(`
+          *,
+          exams!student_exams_exam_id_fkey(teacher_id)
+        `).eq('exams.teacher_id', user.id);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error loading student exams:', error);
+        return;
+      }
+
+      if (data) {
+        const formattedStudentExams: StudentExam[] = data.map(se => ({
+          id: se.id,
+          studentId: se.student_id,
+          examId: se.exam_id,
+          startedAt: new Date(se.started_at),
+          submittedAt: se.submitted_at ? new Date(se.submitted_at) : undefined,
+          answers: se.answers as Record<string, string | string[]>,
+          score: se.score,
+          isGraded: se.is_graded,
+          isSubmitted: se.is_submitted,
+          timeSpent: se.time_spent
+        }));
+
+        setStudentExams(formattedStudentExams);
+      }
+    } catch (error) {
+      console.error('Error in loadStudentExams:', error);
+    }
+  };
 
   const getAllStudents = async () => {
     try {
@@ -316,11 +485,23 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Questions created successfully');
       }
 
+      // Show success message
+      toast({
+        title: "Success",
+        description: "Exam created successfully and is now available to students!",
+      });
+
       // Immediately reload exams to get the new one
       await loadExams();
+      await loadDashboardStats();
       console.log('Exam creation completed successfully');
     } catch (error) {
       console.error('Error in createExam:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create exam. Please try again.",
+        variant: "destructive",
+      });
       throw error;
     }
   };
@@ -397,6 +578,27 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       });
 
+      const timeSpent = Math.floor((new Date().getTime() - currentAttempt.startTime.getTime()) / 1000);
+
+      // Insert into student_exams table
+      const { error: studentExamError } = await supabase
+        .from('student_exams')
+        .insert({
+          exam_id: currentExam.id,
+          student_id: user.id,
+          answers: currentAttempt.answers,
+          score,
+          is_graded: true,
+          is_submitted: true,
+          time_spent: timeSpent,
+          submitted_at: new Date().toISOString()
+        });
+
+      if (studentExamError) {
+        console.error('Error submitting to student_exams:', studentExamError);
+      }
+
+      // Also insert into exam_results for compatibility
       const { error } = await supabase
         .from('exam_results')
         .insert({
@@ -420,7 +622,7 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         endTime: new Date(),
         isCompleted: true,
         score,
-        timeSpent: Math.floor((new Date().getTime() - currentAttempt.startTime.getTime()) / 1000)
+        timeSpent
       };
 
       setCurrentAttempt(updatedAttempt);
@@ -429,10 +631,21 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ));
       setSubmittedExams(prev => [...prev, currentExam.id]);
       
-      // Reload attempts to get the saved data
+      toast({
+        title: "Success",
+        description: `Exam submitted successfully! Your score: ${score}/${currentExam.totalPoints}`,
+      });
+
+      // Reload data
       await loadAttempts();
+      await loadStudentExams();
     } catch (error) {
       console.error('Error in submitExam:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit exam. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -444,9 +657,12 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <ExamContext.Provider value={{
       exams,
       attempts,
+      studentExams,
       submittedExams,
       currentExam,
       currentAttempt,
+      dashboardStats,
+      allStudents,
       createExam,
       startExam,
       submitAnswer,
@@ -457,6 +673,8 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCurrentExam,
       setCurrentAttempt,
       loadExams,
+      loadDashboardStats,
+      loadAllStudents,
       isLoading,
       getAllStudents
     }}>

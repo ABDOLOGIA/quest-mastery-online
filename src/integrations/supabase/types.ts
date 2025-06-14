@@ -235,6 +235,63 @@ export type Database = {
           },
         ]
       }
+      student_exams: {
+        Row: {
+          answers: Json | null
+          created_at: string | null
+          exam_id: string
+          id: string
+          is_graded: boolean | null
+          is_submitted: boolean | null
+          score: number | null
+          started_at: string | null
+          student_id: string
+          submitted_at: string | null
+          time_spent: number | null
+        }
+        Insert: {
+          answers?: Json | null
+          created_at?: string | null
+          exam_id: string
+          id?: string
+          is_graded?: boolean | null
+          is_submitted?: boolean | null
+          score?: number | null
+          started_at?: string | null
+          student_id: string
+          submitted_at?: string | null
+          time_spent?: number | null
+        }
+        Update: {
+          answers?: Json | null
+          created_at?: string | null
+          exam_id?: string
+          id?: string
+          is_graded?: boolean | null
+          is_submitted?: boolean | null
+          score?: number | null
+          started_at?: string | null
+          student_id?: string
+          submitted_at?: string | null
+          time_spent?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_exams_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_exams_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subjects: {
         Row: {
           created_at: string
@@ -280,8 +337,20 @@ export type Database = {
           department: string
         }[]
       }
+      get_teacher_active_exams_count: {
+        Args: { teacher_id_param: string }
+        Returns: number
+      }
+      get_teacher_pending_grading_new: {
+        Args: { teacher_id_param: string }
+        Returns: number
+      }
       get_teacher_student_count: {
         Args: { teacher_id_param: string }
+        Returns: number
+      }
+      get_teacher_students_count: {
+        Args: Record<PropertyKey, never>
         Returns: number
       }
     }
