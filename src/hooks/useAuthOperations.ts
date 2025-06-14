@@ -44,27 +44,34 @@ export const useAuthOperations = () => {
         return { exists: false, error: 'Please enter a valid student ID' };
       }
       
-      const { data: profile, error: profileError } = await supabase
+      // First check profiles table with explicit logging
+      const { data: profiles, error: profileError } = await supabase
         .from('profiles')
-        .select('student_id, email')
-        .eq('student_id', studentId)
-        .maybeSingle();
+        .select('student_id, email, name, role')
+        .eq('student_id', studentId);
       
-      if (profileError && profileError.code !== 'PGRST116') {
+      console.log('Profiles query result:', { profiles, profileError });
+      
+      if (profileError) {
         console.error('Error checking student ID in profiles:', profileError);
-        return { exists: false };
+        return { exists: false, error: 'Database error while checking student ID' };
       }
       
-      if (profile) {
-        console.log('Student ID found in profiles table');
-        return { exists: true, email: profile.email };
+      if (profiles && profiles.length > 0) {
+        const profile = profiles[0];
+        console.log('Student ID found in profiles table:', profile);
+        return { 
+          exists: true, 
+          email: profile.email 
+        };
       }
       
+      console.log('Student ID not found in profiles table');
       return { exists: false };
       
     } catch (error) {
       console.error('Error checking student ID existence:', error);
-      return { exists: false };
+      return { exists: false, error: 'Unexpected error while checking student ID' };
     }
   };
 
@@ -79,16 +86,27 @@ export const useAuthOperations = () => {
         console.log('Input appears to be a student ID, looking up email...');
         const studentIdCheck = await checkStudentIdExists(emailOrStudentId);
         
+        console.log('Student ID check result:', studentIdCheck);
+        
+        if (studentIdCheck.error) {
+          return { 
+            success: false, 
+            error: studentIdCheck.error 
+          };
+        }
+        
         if (studentIdCheck.exists && studentIdCheck.email) {
           email = studentIdCheck.email;
           console.log('Found email for student ID:', email);
         } else {
           return { 
             success: false, 
-            error: 'Student ID not found. Please check your student ID and try again.' 
+            error: `Student ID "${emailOrStudentId}" not found. Please check your student ID and try again, or contact your administrator.` 
           };
         }
       }
+      
+      console.log('Attempting Supabase login with email:', email);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -96,7 +114,7 @@ export const useAuthOperations = () => {
       });
 
       if (error) {
-        console.error('Login error:', error);
+        console.error('Supabase login error:', error);
         
         if (error.message.includes('Email not confirmed')) {
           return { 
@@ -157,6 +175,7 @@ export const useAuthOperations = () => {
 
       // Check if student ID already exists (for students)
       if (userData.role === 'student' && userData.studentId) {
+        console.log('Checking if student ID already exists:', userData.studentId);
         const studentIdCheck = await checkStudentIdExists(userData.studentId);
         if (studentIdCheck.exists) {
           return { 
@@ -167,6 +186,13 @@ export const useAuthOperations = () => {
       }
       
       const redirectUrl = `${window.location.origin}/`;
+      
+      console.log('Creating user with metadata:', {
+        name: userData.name,
+        role: userData.role || 'student',
+        department: userData.department || null,
+        studentId: userData.studentId || null
+      });
       
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: userData.email!,
