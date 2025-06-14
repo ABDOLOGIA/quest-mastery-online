@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
@@ -256,6 +257,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Attempting registration for:', userData.email);
       
+      // For development, we'll disable email confirmation
+      // You can enable it later when you set up email provider
       const redirectUrl = `${window.location.origin}/`;
       
       // First, sign up the user
@@ -289,6 +292,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (authData?.user) {
         console.log('Registration successful for user:', authData.user.id);
+        console.log('User confirmed immediately:', !!authData.user.email_confirmed_at);
+        
+        // Try to create profile directly if user is auto-confirmed
+        if (authData.user.email_confirmed_at) {
+          try {
+            console.log('User is auto-confirmed, creating profile...');
+            const { error: profileError } = await supabase
+              .from('profiles')
+              .insert({
+                id: authData.user.id,
+                email: userData.email!,
+                name: userData.name!,
+                role: userData.role || 'student',
+                department: userData.department || null,
+                student_id: userData.studentId || null
+              });
+            
+            if (profileError) {
+              console.error('Profile creation error:', profileError);
+            } else {
+              console.log('Profile created successfully');
+            }
+          } catch (profileError) {
+            console.error('Error creating profile:', profileError);
+          }
+          
+          return { success: true, needsConfirmation: false };
+        }
         
         const needsConfirmation = !authData.user.email_confirmed_at;
         console.log('Needs email confirmation:', needsConfirmation);
