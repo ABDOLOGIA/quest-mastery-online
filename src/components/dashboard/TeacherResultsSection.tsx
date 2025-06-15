@@ -104,17 +104,17 @@ const TeacherResultsSection: React.FC = () => {
         return;
       }
 
-      // Transform the data to match our interface
+      // Transform the data to match our interface with null safety
       const transformedResults: ExamResult[] = (data || []).map(result => ({
         id: result.id,
         student_id: result.student_id,
         score: result.score || 0,
         completed_at: result.completed_at,
         is_completed: result.is_completed,
-        student: result.student && typeof result.student === 'object' && result.student !== null && 'name' in result.student
+        student: result.student && typeof result.student === 'object' && result.student !== null
           ? {
-              name: (result.student as any).name || 'Unknown',
-              email: (result.student as any).email || 'Unknown'
+              name: (result.student as any)?.name || 'Unknown',
+              email: (result.student as any)?.email || 'Unknown'
             }
           : null
       }));
@@ -261,8 +261,8 @@ const TeacherResultsSection: React.FC = () => {
                         
                         return (
                           <tr key={result.id} className="hover:bg-gray-50">
-                            <td className="border border-gray-200 p-3">{result.student?.name || 'Unknown'}</td>
-                            <td className="border border-gray-200 p-3">{result.student?.email || 'Unknown'}</td>
+                            <td className="border border-gray-200 p-3">{result.student?.name || 'Unknown Student'}</td>
+                            <td className="border border-gray-200 p-3">{result.student?.email || 'Unknown Email'}</td>
                             <td className="border border-gray-200 p-3 font-medium">
                               {result.score || 0}/{exam?.totalPoints || 0}
                             </td>
