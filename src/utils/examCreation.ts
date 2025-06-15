@@ -9,12 +9,14 @@ export const generateSampleExams = (): Exam[] => {
       description: 'Basic mathematics concepts including algebra and geometry',
       subject: 'Mathematics',
       duration: 45,
-      totalQuestions: 4,
-      passingScore: 70,
-      maxAttempts: 3,
+      totalPoints: 100,
       isActive: true,
       createdBy: 'system',
-      createdAt: new Date().toISOString(),
+      startTime: new Date(),
+      endTime: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
+      allowReview: true,
+      shuffleQuestions: false,
+      alwaysAvailable: true,
       questions: [
         {
           id: 'math-q1',
@@ -23,7 +25,8 @@ export const generateSampleExams = (): Exam[] => {
           options: ['x = 4', 'x = 6', 'x = 8', 'x = 9'],
           correctAnswer: 'x = 4',
           points: 25,
-          order: 1
+          category: 'Algebra',
+          difficulty: 'easy'
         },
         {
           id: 'math-q2',
@@ -32,7 +35,8 @@ export const generateSampleExams = (): Exam[] => {
           options: ['35', '40', '45', '50'],
           correctAnswer: '40',
           points: 25,
-          order: 2
+          category: 'Geometry',
+          difficulty: 'easy'
         },
         {
           id: 'math-q3',
@@ -40,7 +44,8 @@ export const generateSampleExams = (): Exam[] => {
           type: 'fill-blank',
           correctAnswer: '25',
           points: 25,
-          order: 3
+          category: 'Algebra',
+          difficulty: 'medium'
         },
         {
           id: 'math-q4',
@@ -48,7 +53,8 @@ export const generateSampleExams = (): Exam[] => {
           type: 'short-answer',
           correctAnswer: 'In a right triangle, the square of the hypotenuse equals the sum of squares of the other two sides.',
           points: 25,
-          order: 4
+          category: 'Geometry',
+          difficulty: 'medium'
         }
       ]
     },
@@ -58,12 +64,14 @@ export const generateSampleExams = (): Exam[] => {
       description: 'Fundamental physics concepts and principles',
       subject: 'Physics',
       duration: 40,
-      totalQuestions: 4,
-      passingScore: 70,
-      maxAttempts: 3,
+      totalPoints: 100,
       isActive: true,
       createdBy: 'system',
-      createdAt: new Date().toISOString(),
+      startTime: new Date(),
+      endTime: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      allowReview: true,
+      shuffleQuestions: false,
+      alwaysAvailable: true,
       questions: [
         {
           id: 'physics-q1',
@@ -72,7 +80,8 @@ export const generateSampleExams = (): Exam[] => {
           options: ['Newton', 'Joule', 'Watt', 'Pascal'],
           correctAnswer: 'Newton',
           points: 25,
-          order: 1
+          category: 'Mechanics',
+          difficulty: 'easy'
         },
         {
           id: 'physics-q2',
@@ -81,7 +90,8 @@ export const generateSampleExams = (): Exam[] => {
           options: ['Kinetic', 'Potential', 'Thermal', 'Chemical'],
           correctAnswer: ['Kinetic', 'Potential', 'Thermal', 'Chemical'],
           points: 25,
-          order: 2
+          category: 'Energy',
+          difficulty: 'medium'
         },
         {
           id: 'physics-q3',
@@ -89,7 +99,8 @@ export const generateSampleExams = (): Exam[] => {
           type: 'fill-blank',
           correctAnswer: '299792458',
           points: 25,
-          order: 3
+          category: 'Optics',
+          difficulty: 'hard'
         },
         {
           id: 'physics-q4',
@@ -97,7 +108,8 @@ export const generateSampleExams = (): Exam[] => {
           type: 'short-answer',
           correctAnswer: 'An object at rest stays at rest and an object in motion stays in motion unless acted upon by an external force.',
           points: 25,
-          order: 4
+          category: 'Mechanics',
+          difficulty: 'medium'
         }
       ]
     },
@@ -107,13 +119,14 @@ export const generateSampleExams = (): Exam[] => {
       description: 'Grammar, vocabulary, and reading comprehension',
       subject: 'English',
       duration: 30,
-      totalQuestions: 4,
-      passingScore: 70,
-      maxAttempts: 3,
+      totalPoints: 100,
       isActive: true,
       createdBy: 'system',
-      createdAt: new Date().toISOString(),
-      availableFrom: new Date().toISOString(),
+      startTime: new Date(),
+      endTime: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      allowReview: true,
+      shuffleQuestions: false,
+      alwaysAvailable: true,
       questions: [
         {
           id: 'english-q1',
@@ -122,7 +135,8 @@ export const generateSampleExams = (): Exam[] => {
           options: ['go', 'goes', 'went', 'going'],
           correctAnswer: 'went',
           points: 25,
-          order: 1
+          category: 'Grammar',
+          difficulty: 'easy'
         },
         {
           id: 'english-q2',
@@ -131,7 +145,8 @@ export const generateSampleExams = (): Exam[] => {
           options: ['Beautiful', 'Quickly', 'Tall', 'Run'],
           correctAnswer: ['Beautiful', 'Tall'],
           points: 25,
-          order: 2
+          category: 'Grammar',
+          difficulty: 'medium'
         },
         {
           id: 'english-q3',
@@ -139,7 +154,8 @@ export const generateSampleExams = (): Exam[] => {
           type: 'fill-blank',
           correctAnswer: 'cold',
           points: 25,
-          order: 3
+          category: 'Vocabulary',
+          difficulty: 'easy'
         },
         {
           id: 'english-q4',
@@ -147,7 +163,8 @@ export const generateSampleExams = (): Exam[] => {
           type: 'short-answer',
           correctAnswer: 'Any coherent summary of a book showing understanding of plot and characters.',
           points: 25,
-          order: 4
+          category: 'Writing',
+          difficulty: 'hard'
         }
       ]
     },
@@ -157,12 +174,14 @@ export const generateSampleExams = (): Exam[] => {
       description: 'Mixed science topics covering biology, chemistry, and earth science',
       subject: 'Science',
       duration: 35,
-      totalQuestions: 4,
-      passingScore: 70,
-      maxAttempts: 3,
+      totalPoints: 100,
       isActive: true,
       createdBy: 'system',
-      createdAt: new Date().toISOString(),
+      startTime: new Date(),
+      endTime: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      allowReview: true,
+      shuffleQuestions: false,
+      alwaysAvailable: true,
       questions: [
         {
           id: 'science-q1',
@@ -171,7 +190,8 @@ export const generateSampleExams = (): Exam[] => {
           options: ['H2O', 'CO2', 'NaCl', 'O2'],
           correctAnswer: 'H2O',
           points: 25,
-          order: 1
+          category: 'Chemistry',
+          difficulty: 'easy'
         },
         {
           id: 'science-q2',
@@ -180,7 +200,8 @@ export const generateSampleExams = (): Exam[] => {
           options: ['Cell wall', 'Chloroplasts', 'Nucleus', 'Mitochondria'],
           correctAnswer: ['Cell wall', 'Chloroplasts', 'Nucleus', 'Mitochondria'],
           points: 25,
-          order: 2
+          category: 'Biology',
+          difficulty: 'medium'
         },
         {
           id: 'science-q3',
@@ -188,7 +209,8 @@ export const generateSampleExams = (): Exam[] => {
           type: 'fill-blank',
           correctAnswer: '78',
           points: 25,
-          order: 3
+          category: 'Earth Science',
+          difficulty: 'medium'
         },
         {
           id: 'science-q4',
@@ -196,9 +218,13 @@ export const generateSampleExams = (): Exam[] => {
           type: 'short-answer',
           correctAnswer: 'Plants use sunlight, carbon dioxide, and water to produce glucose and oxygen.',
           points: 25,
-          order: 4
+          category: 'Biology',
+          difficulty: 'hard'
         }
       ]
     }
   ];
 };
+
+// Export the createExamInDatabase function from the exam/examCreation module
+export { createExamInDatabase } from './exam/examCreation';

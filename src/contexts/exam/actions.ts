@@ -1,6 +1,6 @@
 
 import { Exam, ExamAttempt, Warning } from '../../types/exam';
-import { createExamInDatabase } from '../../utils/examCreation';
+import { createExamInDatabase } from '../../utils/exam/examCreation';
 import { submitExamToDatabase } from '../../utils/examOperations';
 import { useToast } from '../../hooks/use-toast';
 
