@@ -18,10 +18,11 @@ export const createExamInDatabase = async (examData: Omit<Exam, 'id'>, user: any
       .from('subjects')
       .select('id')
       .eq('name', examData.subject)
-      .single();
+      .maybeSingle();
 
     if (existingSubject) {
       subjectId = existingSubject.id;
+      console.log('Using existing subject:', subjectId);
     } else {
       const { data: newSubject, error: createSubjectError } = await supabase
         .from('subjects')
@@ -39,6 +40,7 @@ export const createExamInDatabase = async (examData: Omit<Exam, 'id'>, user: any
       }
 
       subjectId = newSubject.id;
+      console.log('Created new subject:', subjectId);
     }
 
     // Create the exam
@@ -71,18 +73,32 @@ export const createExamInDatabase = async (examData: Omit<Exam, 'id'>, user: any
     const examId = examResult.id;
     console.log('Created exam with ID:', examId);
 
-    // Create questions
-    const questionsToInsert = examData.questions.map((question, index) => ({
-      exam_id: examId,
-      question_text: question.question,
-      question_type: question.type === 'single-choice' ? 'multiple_choice' : question.type.replace('-', '_'),
-      options: question.options ? JSON.stringify(question.options) : null,
-      correct_answer: Array.isArray(question.correctAnswer) 
-        ? JSON.stringify(question.correctAnswer) 
-        : question.correctAnswer,
-      marks: question.points,
-      order_number: index + 1
-    }));
+    // Create questions with proper type mapping
+    const questionsToInsert = examData.questions.map((question, index) => {
+      // Map question types to database format
+      let questionType = question.type;
+      if (question.type === 'single-choice') {
+        questionType = 'multiple_choice';
+      } else if (question.type === 'multiple-choice') {
+        questionType = 'multiple_choice';
+      } else if (question.type === 'fill-blank') {
+        questionType = 'fill_blank';
+      } else if (question.type === 'short-answer') {
+        questionType = 'short_answer';
+      }
+
+      return {
+        exam_id: examId,
+        question_text: question.question,
+        question_type: questionType,
+        options: question.options ? JSON.stringify(question.options) : null,
+        correct_answer: Array.isArray(question.correctAnswer) 
+          ? JSON.stringify(question.correctAnswer) 
+          : question.correctAnswer,
+        marks: question.points,
+        order_number: index + 1
+      };
+    });
 
     console.log('Inserting questions:', questionsToInsert);
 
