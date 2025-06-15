@@ -4,15 +4,14 @@ import { Exam } from '../../types/exam';
 import { validateExamData } from './examValidation';
 import { getOrCreateSubject } from './subjectCreation';
 import { createQuestionsWithErrorHandling } from './questionCreation';
+import { verifyCreatePermissions, handleCreationError } from '../roleHelpers';
 
 export const createExamInDatabase = async (examData: Omit<Exam, 'id'>, user: any): Promise<void> => {
-  if (!user || (user.role !== 'teacher' && user.role !== 'admin')) {
-    const errorMsg = 'Unauthorized: Only teachers and admins can create exams';
-    console.error(errorMsg);
-    throw new Error(errorMsg);
-  }
+  // Verify user permissions first
+  verifyCreatePermissions(user);
 
   console.log('Creating exam with data:', examData);
+  console.log('User creating exam:', { id: user.id, role: user.role });
 
   // Validate exam data
   const validationErrors = validateExamData(examData);
@@ -27,7 +26,8 @@ export const createExamInDatabase = async (examData: Omit<Exam, 'id'>, user: any
     subjectId = await getOrCreateSubject(examData.subject);
   } catch (error) {
     console.error('Subject creation/retrieval failed:', error);
-    throw error;
+    const errorMessage = handleCreationError(error);
+    throw new Error(`Subject creation failed: ${errorMessage}`);
   }
 
   // Prepare exam data for insertion
@@ -36,11 +36,14 @@ export const createExamInDatabase = async (examData: Omit<Exam, 'id'>, user: any
     description: examData.description?.trim() || '',
     subject_id: subjectId,
     teacher_id: user.id,
+    creator_id: user.id, // Ensure creator_id is set
     duration_minutes: examData.duration,
     total_marks: examData.totalPoints,
+    total_points: examData.totalPoints, // Set both for compatibility
     start_time: examData.alwaysAvailable ? null : examData.startTime.toISOString(),
     end_time: examData.alwaysAvailable ? null : examData.endTime.toISOString(),
-    is_published: examData.isActive
+    is_published: examData.isActive,
+    status: examData.isActive ? 'published' : 'draft'
   };
 
   console.log('Inserting exam:', examToInsert);
@@ -54,15 +57,8 @@ export const createExamInDatabase = async (examData: Omit<Exam, 'id'>, user: any
 
     if (examError) {
       console.error('Error creating exam:', examError);
-      
-      // Handle specific exam creation errors
-      if (examError.code === '23505') {
-        throw new Error('An exam with this title already exists. Please choose a different title.');
-      } else if (examError.code === '42501') {
-        throw new Error('You do not have permission to create exams. Please contact an administrator.');
-      } else {
-        throw new Error(`Failed to create exam: ${examError.message}`);
-      }
+      const errorMessage = handleCreationError(examError);
+      throw new Error(`Failed to create exam: ${errorMessage}`);
     }
 
     if (!examResult) {
@@ -79,6 +75,10 @@ export const createExamInDatabase = async (examData: Omit<Exam, 'id'>, user: any
     console.log('Exam creation completed successfully');
   } catch (error) {
     console.error('Error in exam creation process:', error);
-    throw error;
+    if (error instanceof Error) {
+      throw error;
+    } else {
+      throw new Error('An unexpected error occurred during exam creation. Please try again.');
+    }
   }
 };

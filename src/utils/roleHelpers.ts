@@ -9,6 +9,14 @@ export function canManageExams(user: User | null): boolean {
   return user ? ['admin', 'teacher'].includes(user.role) : false;
 }
 
+export function canUpdateExams(user: User | null): boolean {
+  return user ? ['admin', 'teacher'].includes(user.role) : false;
+}
+
+export function canDeleteExams(user: User | null): boolean {
+  return user ? ['admin', 'teacher'].includes(user.role) : false;
+}
+
 export function canViewAllExams(user: User | null): boolean {
   return user ? user.role === 'admin' : false;
 }
@@ -36,4 +44,33 @@ export function isHigherRole(userRole: string, targetRole: string): boolean {
 
 export function canManageRole(userRole: string, targetRole: string): boolean {
   return userRole === 'admin' || isHigherRole(userRole, targetRole);
+}
+
+export function hasTeacherPermissions(user: User | null): boolean {
+  return user ? ['admin', 'teacher'].includes(user.role) : false;
+}
+
+export function verifyCreatePermissions(user: User | null): void {
+  if (!hasTeacherPermissions(user)) {
+    throw new Error('Your account needs teacher privileges to create content. Please contact an administrator to upgrade your role.');
+  }
+}
+
+export function handleCreationError(error: any): string {
+  if (!error) return 'An unknown error occurred';
+  
+  switch (error.code) {
+    case '42501':
+      return 'Permission denied: Your account needs teacher privileges. Please contact an administrator to upgrade your role.';
+    case '23505':
+      return 'This name already exists. Please choose a different name.';
+    case '23502':
+      return 'Required fields are missing. Please fill in all required information.';
+    case '22P02':
+      return 'Invalid data format. Please check your input and try again.';
+    case 'PGRST116':
+      return 'Permission denied: Unable to access this resource. Please check your account permissions.';
+    default:
+      return error.message || 'Creation failed. Please try again or contact support if the problem persists.';
+  }
 }

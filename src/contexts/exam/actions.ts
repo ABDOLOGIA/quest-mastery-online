@@ -1,8 +1,8 @@
-
 import { Exam, ExamAttempt, Warning } from '../../types/exam';
 import { createExamInDatabase } from '../../utils/exam/examCreation';
 import { submitExamToDatabase } from '../../utils/examOperations';
 import { useToast } from '../../hooks/use-toast';
+import { verifyCreatePermissions, handleCreationError } from '../../utils/roleHelpers';
 
 export const useExamActions = (
   user: any,
@@ -27,6 +27,19 @@ export const useExamActions = (
       throw new Error('You must be logged in to create exams');
     }
 
+    // Verify permissions before proceeding
+    try {
+      verifyCreatePermissions(user);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Permission denied';
+      toast({
+        title: "Access Denied",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      throw error;
+    }
+
     setIsLoading(true);
     try {
       console.log('Creating exam with user:', user.id, 'role:', user.role);
@@ -40,16 +53,22 @@ export const useExamActions = (
         loadDashboardStats()
       ]);
       
+      toast({
+        title: "Success!",
+        description: "Exam created successfully and is now available.",
+      });
+      
       console.log('Exam creation completed successfully');
     } catch (error) {
       console.error('Error in createExam context method:', error);
       
-      // Log detailed error information for debugging
-      if (error instanceof Error) {
-        console.error('Error name:', error.name);
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
-      }
+      const errorMessage = handleCreationError(error);
+      
+      toast({
+        title: "Creation Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
       
       // Re-throw the error so the component can handle it
       throw error;

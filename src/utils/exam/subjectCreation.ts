@@ -1,5 +1,6 @@
 
 import { supabase } from '../../lib/supabase';
+import { handleCreationError } from '../roleHelpers';
 
 interface SubjectCreationError extends Error {
   code?: string;
@@ -14,26 +15,16 @@ export const createSubjectWithErrorHandling = async (subjectName: string): Promi
       .from('subjects')
       .insert({ 
         name: subjectName.trim(),
-        description: `Subject for ${subjectName.trim()}` 
+        description: `Subject for ${subjectName.trim()}`,
+        created_by: (await supabase.auth.getUser()).data.user?.id
       })
       .select('id')
       .single();
 
     if (error) {
       console.log('Subject creation error:', { error, code: error.code, details: error.details });
-      
-      // Handle specific error codes
-      if (error.code === '23505') {
-        throw new Error('Subject name already exists. Please choose a different name.');
-      } else if (error.code === '42501') {
-        throw new Error('You do not have permission to create subjects. Please contact an administrator.');
-      } else if (error.code === '22P02') {
-        throw new Error('Invalid subject data format. Please check your input.');
-      } else if (error.code === '23502') {
-        throw new Error('Subject name is required and cannot be empty.');
-      } else {
-        throw new Error(`Failed to create subject: ${error.message || 'Unknown error occurred'}`);
-      }
+      const errorMessage = handleCreationError(error);
+      throw new Error(errorMessage);
     }
 
     if (!newSubject?.id) {
@@ -65,7 +56,8 @@ export const getOrCreateSubject = async (subjectName: string): Promise<string> =
 
     if (subjectQueryError) {
       console.error('Error querying subject:', subjectQueryError);
-      throw new Error('Failed to check existing subjects. Please try again.');
+      const errorMessage = handleCreationError(subjectQueryError);
+      throw new Error(`Failed to check existing subjects: ${errorMessage}`);
     }
 
     if (existingSubject) {
