@@ -12,7 +12,7 @@ import { useToast } from '../ui/use-toast';
 import { canCreateContent, canManageExams } from '../../utils/roleHelpers';
 import { AlertCircle } from 'lucide-react';
 import TeacherDashboardHeader from './teacher/TeacherDashboardHeader';
-import TeacherDashboardStats from './TeacherDashboardStats';
+import TeacherDashboardStats from './teacher/TeacherDashboardStats';
 import TeacherQuickActions from './teacher/TeacherQuickActions';
 import TeacherExamsList from './teacher/TeacherExamsList';
 import TeacherStudentsList from './teacher/TeacherStudentsList';
@@ -167,7 +167,7 @@ const TeacherDashboard: React.FC = () => {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          <TeacherDashboardStats />
+          <TeacherDashboardStats stats={stats} isLoading={isLoading} />
           <TeacherQuickActions user={user} onSetActiveTab={setActiveTab} />
           <SampleExamAdder />
         </TabsContent>
