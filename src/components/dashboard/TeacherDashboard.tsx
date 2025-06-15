@@ -2,43 +2,29 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useExam } from '../../contexts/ExamContext';
-import { supabase } from '../../lib/supabase';
 import { Card, CardContent } from '../ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import QuestionManagement from '../teacher/QuestionManagement';
-import ExamCreationForm from '../teacher/ExamCreationForm';
-import SampleExamAdder from '../teacher/SampleExamAdder';
 import { useToast } from '../ui/use-toast';
-import { canCreateContent, canManageExams } from '../../utils/roleHelpers';
+import { canManageExams } from '../../utils/roleHelpers';
 import { AlertCircle } from 'lucide-react';
 import TeacherDashboardHeader from './teacher/TeacherDashboardHeader';
-import TeacherDashboardStats from './teacher/TeacherDashboardStats';
-import TeacherQuickActions from './teacher/TeacherQuickActions';
-import TeacherExamsList from './teacher/TeacherExamsList';
-import TeacherStudentsList from './teacher/TeacherStudentsList';
-import TeacherResultsSection from './TeacherResultsSection';
-
-interface TeacherStats {
-  studentCount: number;
-  pendingGrading: number;
-  myExamsCount: number;
-  activeExamsCount: number;
-}
+import TeacherDashboardTabs from './teacher/TeacherDashboardTabs';
+import { useTeacherStats } from '../../hooks/useTeacherStats';
 
 const TeacherDashboard: React.FC = () => {
   const { user } = useAuth();
-  const { exams, loadExams, isLoading, getAllStudents } = useExam();
+  const { loadExams, isLoading } = useExam();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('overview');
-  const [stats, setStats] = useState<TeacherStats>({
-    studentCount: 0,
-    pendingGrading: 0,
-    myExamsCount: 0,
-    activeExamsCount: 0
-  });
   const [showExamForm, setShowExamForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [allStudents, setAllStudents] = useState<any[]>([]);
+
+  const {
+    stats,
+    allStudents,
+    myExams,
+    loadAllStudents,
+    loadTeacherStats
+  } = useTeacherStats();
 
   // Check if user has permission to access teacher dashboard
   if (!canManageExams(user)) {
@@ -55,8 +41,6 @@ const TeacherDashboard: React.FC = () => {
     );
   }
 
-  const myExams = exams.filter(exam => exam.createdBy === user?.id);
-
   useEffect(() => {
     if (user) {
       loadTeacherStats();
@@ -64,27 +48,6 @@ const TeacherDashboard: React.FC = () => {
       loadAllStudents();
     }
   }, [user]);
-
-  useEffect(() => {
-    setStats(prev => ({
-      ...prev,
-      myExamsCount: myExams.length,
-      activeExamsCount: myExams.filter(e => e.isActive).length
-    }));
-  }, [myExams]);
-
-  const loadAllStudents = async () => {
-    try {
-      const students = await getAllStudents();
-      setAllStudents(students);
-      setStats(prev => ({
-        ...prev,
-        studentCount: students.length
-      }));
-    } catch (error) {
-      console.error('Error loading students:', error);
-    }
-  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -105,27 +68,6 @@ const TeacherDashboard: React.FC = () => {
       });
     } finally {
       setRefreshing(false);
-    }
-  };
-
-  const loadTeacherStats = async () => {
-    if (!user || !canManageExams(user)) return;
-
-    try {
-      // Get pending grading count
-      const { data: pendingGradingData, error: gradingError } = await supabase
-        .rpc('get_pending_grading_count', { teacher_id_param: user.id });
-
-      if (gradingError) {
-        console.error('Error fetching pending grading count:', gradingError);
-      }
-
-      setStats(prev => ({
-        ...prev,
-        pendingGrading: pendingGradingData || 0
-      }));
-    } catch (error) {
-      console.error('Error loading teacher stats:', error);
     }
   };
 
@@ -157,65 +99,20 @@ const TeacherDashboard: React.FC = () => {
         isLoading={isLoading}
       />
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="questions">Questions</TabsTrigger>
-          <TabsTrigger value="exams">Exams</TabsTrigger>
-          <TabsTrigger value="students">Students</TabsTrigger>
-          <TabsTrigger value="results">Results</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-6">
-          <TeacherDashboardStats stats={stats} isLoading={isLoading} />
-          <TeacherQuickActions user={user} onSetActiveTab={setActiveTab} />
-          <SampleExamAdder />
-        </TabsContent>
-
-        <TabsContent value="questions">
-          <QuestionManagement />
-        </TabsContent>
-
-        <TabsContent value="exams" className="space-y-6">
-          {showExamForm ? (
-            <div className="space-y-4">
-              <TeacherExamsList
-                exams={myExams}
-                user={user}
-                showExamForm={showExamForm}
-                isLoading={isLoading}
-                refreshing={refreshing}
-                onShowExamForm={setShowExamForm}
-                onRefresh={handleRefresh}
-              />
-              <ExamCreationForm onExamCreated={handleExamCreated} onCancel={() => setShowExamForm(false)} />
-            </div>
-          ) : (
-            <TeacherExamsList
-              exams={myExams}
-              user={user}
-              showExamForm={showExamForm}
-              isLoading={isLoading}
-              refreshing={refreshing}
-              onShowExamForm={setShowExamForm}
-              onRefresh={handleRefresh}
-            />
-          )}
-        </TabsContent>
-
-        <TabsContent value="students" className="space-y-6">
-          <TeacherStudentsList
-            students={allStudents}
-            refreshing={refreshing}
-            isLoading={isLoading}
-            onRefresh={handleRefresh}
-          />
-        </TabsContent>
-
-        <TabsContent value="results">
-          <TeacherResultsSection />
-        </TabsContent>
-      </Tabs>
+      <TeacherDashboardTabs
+        activeTab={activeTab}
+        onValueChange={setActiveTab}
+        stats={stats}
+        isLoading={isLoading}
+        user={user}
+        myExams={myExams}
+        allStudents={allStudents}
+        refreshing={refreshing}
+        showExamForm={showExamForm}
+        onShowExamForm={setShowExamForm}
+        onRefresh={handleRefresh}
+        onExamCreated={handleExamCreated}
+      />
     </div>
   );
 };
