@@ -6,31 +6,31 @@ import { Card, CardContent } from '../ui/card';
 const HeroCarousel = () => {
   const slides = [
     {
-      image: '/lovable-uploads/20f3cb03-ba43-469c-bd02-803fcca6c566.png',
+      image: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=500&h=300&fit=crop',
       title: 'Achieve Your Dreams',
       description: 'Every certification earned is a step closer to your goals. Excellence in education opens doors to limitless possibilities.',
       accent: 'Success Stories'
     },
     {
-      image: '/lovable-uploads/34504a5f-fff8-45b0-bc9c-fd4960151cf4.png',
+      image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500&h=300&fit=crop',
       title: 'Graduation Excellence',
       description: 'Join thousands of successful graduates who transformed their careers through dedicated learning and achievement.',
       accent: 'Academic Success'
     },
     {
-      image: '/lovable-uploads/176e025c-8e10-406f-a0e5-8bc3476d60f3.png',
+      image: 'https://images.unsplash.com/photo-1606761568499-6d2451b23c66?w=500&h=300&fit=crop',
       title: 'Global Recognition',
       description: 'Our certifications are recognized worldwide, providing you with credentials that matter in the global marketplace.',
       accent: 'International Standards'
     },
     {
-      image: '/lovable-uploads/4e7a843e-78d6-49e1-9fc0-c679ba86784d.png',
+      image: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=500&h=300&fit=crop',
       title: 'Focused Learning',
       description: 'Dedicated study environments and personalized learning paths help you master every subject with confidence.',
       accent: 'Personal Growth'
     },
     {
-      image: '/lovable-uploads/5569aaf3-8285-4711-b34a-f9ae48e11e89.png',
+      image: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=500&h=300&fit=crop',
       title: 'Digital Excellence',
       description: 'Modern technology meets traditional education values, creating the perfect learning ecosystem for today\'s students.',
       accent: 'Innovation'
@@ -74,6 +74,9 @@ const HeroCarousel = () => {
                         src={slide.image} 
                         alt={slide.title}
                         className="w-full h-64 object-cover transition-transform duration-700 group-hover:scale-110"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=500&h=300&fit=crop';
+                        }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                       <div className="absolute top-4 left-4">
