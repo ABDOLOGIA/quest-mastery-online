@@ -105,6 +105,7 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <ExamContext.Provider value={{
       exams,
+      setExams,
       attempts,
       studentExams,
       submittedExams,

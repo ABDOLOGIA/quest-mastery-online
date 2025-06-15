@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useExam } from '../../contexts/ExamContext';
 import AvailableExams from './AvailableExams';
 import ExamResults from './ExamResults';
+import SampleExamsGenerator from '../student/SampleExamsGenerator';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { BookOpen, Clock, Trophy } from 'lucide-react';
 
@@ -25,6 +26,9 @@ const StudentDashboard = () => {
           Ready to take some exams? Check out what's available below.
         </p>
       </div>
+
+      {/* Sample Exams Generator */}
+      <SampleExamsGenerator />
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
