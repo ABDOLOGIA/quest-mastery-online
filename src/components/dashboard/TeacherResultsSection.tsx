@@ -7,16 +7,27 @@ import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { useToast } from '../ui/use-toast';
 import { Exam } from '../../types/exam';
+import { Download, FileText, Users } from 'lucide-react';
+
+interface ExamResult {
+  id: string;
+  student_id: string;
+  score: number;
+  completed_at: string;
+  is_completed: boolean;
+  student: {
+    name: string;
+    email: string;
+  };
+}
 
 const TeacherResultsSection: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [exams, setExams] = useState<Exam[]>([]);
   const [selectedExam, setSelectedExam] = useState<string | null>(null);
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<ExamResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-
-  const myExams = exams.filter(exam => exam.createdBy === user?.id);
 
   useEffect(() => {
     if (user) {
@@ -25,13 +36,24 @@ const TeacherResultsSection: React.FC = () => {
   }, [user]);
 
   const loadExams = async () => {
+    if (!user) return;
+    
     try {
       const { data, error } = await supabase
         .from('exams')
         .select('*')
-        .eq('teacher_id', user?.id);
+        .eq('teacher_id', user.id)
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading exams:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load exams",
+          variant: "destructive",
+        });
+        return;
+      }
 
       const transformedExams: Exam[] = data?.map(exam => ({
         id: exam.id,
@@ -72,7 +94,15 @@ const TeacherResultsSection: React.FC = () => {
         `)
         .eq('exam_id', examId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading results:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load exam results",
+          variant: "destructive",
+        });
+        return;
+      }
 
       setResults(data || []);
     } catch (error) {
@@ -92,11 +122,39 @@ const TeacherResultsSection: React.FC = () => {
     loadResults(examId);
   };
 
-  if (myExams.length === 0) {
+  const exportResults = () => {
+    if (!selectedExam || results.length === 0) return;
+
+    const exam = exams.find(e => e.id === selectedExam);
+    const csvContent = [
+      ['Student Name', 'Email', 'Score', 'Total Points', 'Percentage', 'Status', 'Completed At'],
+      ...results.map(result => [
+        result.student?.name || 'Unknown',
+        result.student?.email || 'Unknown',
+        result.score || 0,
+        exam?.totalPoints || 0,
+        exam?.totalPoints ? Math.round(((result.score || 0) / exam.totalPoints) * 100) : 0,
+        result.is_completed ? 'Completed' : 'In Progress',
+        result.completed_at ? new Date(result.completed_at).toLocaleDateString() : 'Not completed'
+      ])
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${exam?.title || 'exam'}_results.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  if (exams.length === 0) {
     return (
       <Card>
         <CardContent className="p-8 text-center">
-          <p className="text-gray-500">No exams found. Create your first exam to see results here.</p>
+          <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-500 mb-2">No exams found</p>
+          <p className="text-sm text-gray-400">Create your first exam to see results here.</p>
         </CardContent>
       </Card>
     );
@@ -106,11 +164,14 @@ const TeacherResultsSection: React.FC = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Exam Results Management</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Exam Results Management
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {myExams.map((exam) => (
+            {exams.map((exam) => (
               <Card 
                 key={exam.id} 
                 className={`cursor-pointer transition-all ${
@@ -125,7 +186,7 @@ const TeacherResultsSection: React.FC = () => {
                     <p>Points: {exam.totalPoints}</p>
                     <p>Duration: {exam.duration} minutes</p>
                     <Badge variant={exam.isActive ? "default" : "secondary"}>
-                      {exam.isActive ? "Active" : "Inactive"}
+                      {exam.isActive ? "Published" : "Draft"}
                     </Badge>
                   </div>
                 </CardContent>
@@ -138,47 +199,81 @@ const TeacherResultsSection: React.FC = () => {
       {selectedExam && (
         <Card>
           <CardHeader>
-            <CardTitle>
-              Results for: {myExams.find(e => e.id === selectedExam)?.title}
-            </CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle>
+                Results for: {exams.find(e => e.id === selectedExam)?.title}
+              </CardTitle>
+              {results.length > 0 && (
+                <Button onClick={exportResults} variant="outline" size="sm">
+                  <Download className="w-4 h-4 mr-2" />
+                  Export CSV
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <p>Loading results...</p>
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <span className="ml-2">Loading results...</span>
+              </div>
             ) : results.length === 0 ? (
-              <p className="text-gray-500">No submissions yet for this exam.</p>
+              <div className="text-center py-8">
+                <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">No submissions yet for this exam.</p>
+              </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse border border-gray-200">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      <th className="border border-gray-200 p-2 text-left">Student</th>
-                      <th className="border border-gray-200 p-2 text-left">Email</th>
-                      <th className="border border-gray-200 p-2 text-left">Score</th>
-                      <th className="border border-gray-200 p-2 text-left">Submitted</th>
-                      <th className="border border-gray-200 p-2 text-left">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {results.map((result) => (
-                      <tr key={result.id}>
-                        <td className="border border-gray-200 p-2">{result.student?.name}</td>
-                        <td className="border border-gray-200 p-2">{result.student?.email}</td>
-                        <td className="border border-gray-200 p-2">
-                          {result.score || 0}/{myExams.find(e => e.id === selectedExam)?.totalPoints}
-                        </td>
-                        <td className="border border-gray-200 p-2">
-                          {result.completed_at ? new Date(result.completed_at).toLocaleDateString() : 'In Progress'}
-                        </td>
-                        <td className="border border-gray-200 p-2">
-                          <Badge variant={result.is_completed ? "default" : "secondary"}>
-                            {result.is_completed ? "Completed" : "In Progress"}
-                          </Badge>
-                        </td>
+              <div className="space-y-4">
+                <div className="text-sm text-gray-600 mb-4">
+                  Total submissions: {results.length}
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse border border-gray-200 rounded-lg">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="border border-gray-200 p-3 text-left font-medium">Student</th>
+                        <th className="border border-gray-200 p-3 text-left font-medium">Email</th>
+                        <th className="border border-gray-200 p-3 text-left font-medium">Score</th>
+                        <th className="border border-gray-200 p-3 text-left font-medium">Percentage</th>
+                        <th className="border border-gray-200 p-3 text-left font-medium">Submitted</th>
+                        <th className="border border-gray-200 p-3 text-left font-medium">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {results.map((result) => {
+                        const exam = exams.find(e => e.id === selectedExam);
+                        const percentage = exam?.totalPoints ? Math.round(((result.score || 0) / exam.totalPoints) * 100) : 0;
+                        
+                        return (
+                          <tr key={result.id} className="hover:bg-gray-50">
+                            <td className="border border-gray-200 p-3">{result.student?.name || 'Unknown'}</td>
+                            <td className="border border-gray-200 p-3">{result.student?.email || 'Unknown'}</td>
+                            <td className="border border-gray-200 p-3 font-medium">
+                              {result.score || 0}/{exam?.totalPoints || 0}
+                            </td>
+                            <td className="border border-gray-200 p-3">
+                              <span className={`px-2 py-1 rounded text-sm ${
+                                percentage >= 70 ? 'bg-green-100 text-green-800' :
+                                percentage >= 50 ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {percentage}%
+                              </span>
+                            </td>
+                            <td className="border border-gray-200 p-3">
+                              {result.completed_at ? new Date(result.completed_at).toLocaleString() : 'In Progress'}
+                            </td>
+                            <td className="border border-gray-200 p-3">
+                              <Badge variant={result.is_completed ? "default" : "secondary"}>
+                                {result.is_completed ? "Completed" : "In Progress"}
+                              </Badge>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </CardContent>
