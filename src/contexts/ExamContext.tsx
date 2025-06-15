@@ -19,7 +19,13 @@ export const useExam = () => {
 
 export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const auth = useAuth();
-  const user = auth?.user;
+  
+  // Don't render children until auth is initialized
+  if (!auth) {
+    return null;
+  }
+  
+  const user = auth.user;
 
   // State management
   const {
