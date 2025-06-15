@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import { useExam } from '../../contexts/ExamContext';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
@@ -16,7 +17,9 @@ import {
   ArrowRight,
   Flag,
   X,
-  Home
+  Home,
+  Save,
+  Shield
 } from 'lucide-react';
 
 const ExamInterface: React.FC = () => {
@@ -30,6 +33,8 @@ const ExamInterface: React.FC = () => {
   const [showSecurityWarning, setShowSecurityWarning] = useState(false);
   const [examClosed, setExamClosed] = useState(false);
   const [warningMessage, setWarningMessage] = useState('');
+  const [lastSaveTime, setLastSaveTime] = useState<Date>(new Date());
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   const MAX_WARNINGS = 3;
 
   const handleReturnHome = () => {
@@ -37,7 +42,31 @@ const ExamInterface: React.FC = () => {
     setCurrentAttempt(null);
   };
 
-  // Security monitoring
+  // Auto-save functionality
+  const autoSave = useCallback(async () => {
+    if (!currentAttempt || !currentExam || isExamSubmitted || examClosed) return;
+    
+    setAutoSaveStatus('saving');
+    try {
+      // Auto-save current answers
+      Object.entries(answers).forEach(([questionId, answer]) => {
+        submitAnswer(questionId, answer);
+      });
+      setLastSaveTime(new Date());
+      setAutoSaveStatus('saved');
+    } catch (error) {
+      console.error('Auto-save error:', error);
+      setAutoSaveStatus('error');
+    }
+  }, [answers, currentAttempt, currentExam, isExamSubmitted, examClosed, submitAnswer]);
+
+  // Auto-save every 30 seconds
+  useEffect(() => {
+    const autoSaveInterval = setInterval(autoSave, 30000);
+    return () => clearInterval(autoSaveInterval);
+  }, [autoSave]);
+
+  // Enhanced security monitoring
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden && !isExamSubmitted && !examClosed) {
@@ -53,16 +82,47 @@ const ExamInterface: React.FC = () => {
     };
 
     const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault();
+      if (!isExamSubmitted && !examClosed) {
+        e.preventDefault();
+        addWarningToSystem('Right Click', 'Student attempted to access context menu');
+      }
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
+      // Block developer tools and common shortcuts
+      if (
+        e.key === 'F12' || 
+        (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+        (e.ctrlKey && e.shiftKey && e.key === 'J') ||
+        (e.ctrlKey && e.key === 'U')
+      ) {
         e.preventDefault();
+        addWarningToSystem('Developer Tools', 'Student attempted to access developer tools');
       }
-      // Detect copy attempts with Ctrl+C
+      
+      // Detect copy attempts
       if (e.ctrlKey && e.key === 'c' && !isExamSubmitted && !examClosed) {
         addWarningToSystem('Copy Attempt', 'Student attempted to copy with Ctrl+C');
+      }
+
+      // Block refresh
+      if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
+        e.preventDefault();
+        addWarningToSystem('Refresh Attempt', 'Student attempted to refresh the page');
+      }
+    };
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!isExamSubmitted && !examClosed) {
+        e.preventDefault();
+        e.returnValue = 'Are you sure you want to leave? Your exam progress will be lost.';
+        addWarningToSystem('Page Leave', 'Student attempted to leave the exam page');
+      }
+    };
+
+    const handleResize = () => {
+      if (!isExamSubmitted && !examClosed) {
+        addWarningToSystem('Window Resize', 'Window size changed during exam');
       }
     };
 
@@ -70,12 +130,16 @@ const ExamInterface: React.FC = () => {
     document.addEventListener('copy', handleCopy);
     document.addEventListener('contextmenu', handleContextMenu);
     document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('resize', handleResize);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       document.removeEventListener('copy', handleCopy);
       document.removeEventListener('contextmenu', handleContextMenu);
       document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('resize', handleResize);
     };
   }, [isExamSubmitted, examClosed]);
 
@@ -84,6 +148,9 @@ const ExamInterface: React.FC = () => {
     setWarnings(prev => [...prev, newWarning]);
     setWarningMessage(message);
     setShowSecurityWarning(true);
+    
+    // Auto-save when warning is triggered
+    autoSave();
     
     // Hide warning after 5 seconds
     setTimeout(() => {
@@ -106,7 +173,7 @@ const ExamInterface: React.FC = () => {
     }
   };
 
-  // Timer
+  // Enhanced timer with countdown
   useEffect(() => {
     if (!currentExam || !currentAttempt || isExamSubmitted || examClosed) return;
 
@@ -120,7 +187,14 @@ const ExamInterface: React.FC = () => {
       
       setTimeRemaining(remaining);
       
+      // Warning at 5 minutes remaining
+      if (remaining === 300) {
+        addWarningToSystem('Time Warning', '5 minutes remaining');
+      }
+      
+      // Auto-submit when time runs out
       if (remaining === 0) {
+        addWarningToSystem('Time Up', 'Exam time expired - auto-submitting');
         handleSubmitExam();
       }
     }, 1000);
@@ -141,11 +215,14 @@ const ExamInterface: React.FC = () => {
 
   const handleAnswerChange = (questionId: string, answer: string | string[]) => {
     setAnswers(prev => ({ ...prev, [questionId]: answer }));
+    // Auto-save on answer change
     submitAnswer(questionId, answer);
+    setAutoSaveStatus('saved');
   };
 
-  const handleSubmitExam = () => {
+  const handleSubmitExam = async () => {
     setIsExamSubmitted(true);
+    await autoSave(); // Final save before submission
     submitExam();
   };
 
@@ -186,6 +263,9 @@ const ExamInterface: React.FC = () => {
             <div className="mt-4 p-4 bg-red-50 rounded-lg">
               <p className="text-sm text-red-700">
                 Total warnings: {warnings.length}
+              </p>
+              <p className="text-xs text-red-600 mt-2">
+                Your answers have been auto-saved and submitted.
               </p>
             </div>
           </CardContent>
@@ -255,15 +335,26 @@ const ExamInterface: React.FC = () => {
               </p>
             </div>
             <div className="flex items-center space-x-6">
+              {/* Auto-save status */}
+              <div className="flex items-center text-sm">
+                <Save className={`w-4 h-4 mr-1 ${autoSaveStatus === 'saved' ? 'text-green-500' : autoSaveStatus === 'saving' ? 'text-blue-500' : 'text-red-500'}`} />
+                <span className={`${autoSaveStatus === 'saved' ? 'text-green-600' : autoSaveStatus === 'saving' ? 'text-blue-600' : 'text-red-600'}`}>
+                  {autoSaveStatus === 'saved' ? 'Saved' : autoSaveStatus === 'saving' ? 'Saving...' : 'Error'}
+                </span>
+              </div>
+
+              {/* Security status */}
               {warnings.length > 0 && (
                 <div className="flex items-center text-red-600">
-                  <AlertTriangle className="w-4 h-4 mr-1" />
+                  <Shield className="w-4 h-4 mr-1" />
                   <span className="text-sm">Warnings: {warnings.length}/{MAX_WARNINGS}</span>
                 </div>
               )}
+
+              {/* Timer */}
               <div className="flex items-center space-x-2">
                 <Clock className={`w-5 h-5 ${timeRemaining < 300 ? 'text-red-500' : 'text-gray-500'}`} />
-                <span className={`exam-timer ${timeRemaining < 300 ? 'text-red-500 animate-pulse' : 'text-gray-900'}`}>
+                <span className={`exam-timer font-mono text-lg ${timeRemaining < 300 ? 'text-red-500 animate-pulse font-bold' : 'text-gray-900'}`}>
                   {formatTime(timeRemaining)}
                 </span>
               </div>
@@ -337,6 +428,14 @@ const ExamInterface: React.FC = () => {
                     <Flag className="w-3 h-3 text-red-500 mr-2" />
                     <span>Flagged</span>
                   </div>
+                </div>
+
+                {/* Auto-save info */}
+                <div className="mt-4 p-2 bg-blue-50 rounded text-xs">
+                  <p className="text-blue-700 font-medium">Auto-save enabled</p>
+                  <p className="text-blue-600">
+                    Last saved: {lastSaveTime.toLocaleTimeString()}
+                  </p>
                 </div>
               </CardContent>
             </Card>
