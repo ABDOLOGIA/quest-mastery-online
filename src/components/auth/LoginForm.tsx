@@ -50,6 +50,12 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
       title: 'Digital Learning Excellence',
       description: 'Master modern examination platforms and excel in digital assessments with confidence and skill.',
       quote: '"Technology and determination combine to create unstoppable success."'
+    },
+    {
+      image: '/lovable-uploads/18a2de41-44bf-4e53-865b-84606c4b31ca.png',
+      title: 'Student Success Story',
+      description: 'Real students achieving real success through dedication and smart preparation. Your journey to excellence starts here.',
+      quote: '"With the right mindset and preparation, every student can achieve extraordinary results."'
     }
   ];
 
