@@ -2,57 +2,78 @@
 import { supabase } from '../../lib/supabase';
 
 export const createSampleExams = async (teacherId: string) => {
+  console.log('Creating sample exams for teacher:', teacherId);
+  
   try {
-    console.log('Creating sample exams for teacher:', teacherId);
+    // First create subjects if they don't exist
+    const subjects = [
+      { name: 'Mathematics', description: 'Mathematical concepts and problem solving' },
+      { name: 'Physics', description: 'Physical sciences and natural phenomena' },
+      { name: 'English', description: 'Language arts and literature' }
+    ];
 
-    // First, create or get subjects
-    const subjects = await createSampleSubjects();
-    console.log('Created subjects:', subjects);
+    const createdSubjects = [];
+    for (const subject of subjects) {
+      const { data: existingSubject } = await supabase
+        .from('subjects')
+        .select('id')
+        .eq('name', subject.name)
+        .single();
 
-    // Create sample exams with different availability settings
-    const exams = [
+      if (existingSubject) {
+        createdSubjects.push(existingSubject);
+      } else {
+        const { data: newSubject, error } = await supabase
+          .from('subjects')
+          .insert({
+            name: subject.name,
+            description: subject.description,
+            created_by: teacherId
+          })
+          .select('id')
+          .single();
+
+        if (error) {
+          console.error('Error creating subject:', error);
+          throw error;
+        }
+        createdSubjects.push(newSubject);
+      }
+    }
+
+    // Create sample exams with corrected field mapping
+    const sampleExams = [
       {
         title: 'Mathematics Fundamentals',
-        description: 'Basic algebra and geometry concepts',
-        subject_id: subjects.find(s => s.name === 'Mathematics')?.id,
-        teacher_id: teacherId,
-        duration_minutes: 60,
-        total_marks: 100,
-        start_time: null, // Always available
-        end_time: null,
-        is_published: true
-      },
-      {
-        title: 'Physics Chapter 1 Quiz',
-        description: 'Motion and forces quiz',
-        subject_id: subjects.find(s => s.name === 'Physics')?.id,
-        teacher_id: teacherId,
+        description: 'Test your understanding of basic mathematical concepts including algebra, geometry, and arithmetic.',
+        subject_id: createdSubjects[0].id,
+        creator_id: teacherId, // Changed from teacher_id to creator_id
         duration_minutes: 45,
-        total_marks: 75,
-        start_time: new Date().toISOString(), // Available now
-        end_time: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // For 7 days
+        total_marks: 40,
+        start_time: new Date().toISOString(),
+        end_time: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         is_published: true
       },
       {
-        title: 'Chemistry Lab Assessment',
-        description: 'Laboratory safety and procedures',
-        subject_id: subjects.find(s => s.name === 'Chemistry')?.id,
-        teacher_id: teacherId,
-        duration_minutes: 90,
-        total_marks: 120,
-        start_time: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // Starts in 2 days
-        end_time: new Date(Date.now() + 9 * 24 * 60 * 60 * 1000).toISOString(), // Ends in 9 days
+        title: 'Physics Basics',
+        description: 'Fundamental concepts in physics including motion, energy, and forces.',
+        subject_id: createdSubjects[1].id,
+        creator_id: teacherId, // Changed from teacher_id to creator_id
+        duration_minutes: 40,
+        total_marks: 35,
+        start_time: new Date().toISOString(),
+        end_time: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         is_published: true
       },
       {
-        title: 'English Literature Review',
-        description: 'Shakespeare and modern poetry analysis',
-        subject_id: subjects.find(s => s.name === 'English')?.id,
-        teacher_id: teacherId,
-        duration_minutes: 120,
-        total_marks: 150,
-        start_time: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // Started 2 days ago
-        end_time: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // Ends in 3 days
+        title: 'English Language Skills',
+        description: 'Assessment of grammar, vocabulary, and reading comprehension skills.',
+        subject_id: createdSubjects[2].id,
+        creator_id: teacherId, // Changed from teacher_id to creator_id
+        duration_minutes: 30,
+        total_marks: 30,
+        start_time: new Date().toISOString(),
+        end_time: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         is_published: true
       }
     ];
@@ -60,8 +81,8 @@ export const createSampleExams = async (teacherId: string) => {
     // Insert exams
     const { data: examData, error: examError } = await supabase
       .from('exams')
-      .insert(exams)
-      .select();
+      .insert(sampleExams)
+      .select('id, title');
 
     if (examError) {
       console.error('Error creating exams:', examError);
@@ -70,92 +91,144 @@ export const createSampleExams = async (teacherId: string) => {
 
     console.log('Created exams:', examData);
 
-    // Create sample questions for each exam
-    if (examData) {
-      for (const exam of examData) {
-        await createSampleQuestions(exam.id);
+    // Create questions for each exam
+    const allQuestions = [];
+
+    // Math questions
+    const mathQuestions = [
+      {
+        exam_id: examData[0].id,
+        question_text: 'What is the value of 2x + 5 when x = 3?',
+        question_type: 'multiple_choice',
+        options: JSON.stringify(['8', '11', '13', '16']),
+        correct_answer: '11',
+        marks: 10,
+        order_number: 1
+      },
+      {
+        exam_id: examData[0].id,
+        question_text: 'Which of the following is a prime number?',
+        question_type: 'multiple_choice',
+        options: JSON.stringify(['15', '21', '17', '25']),
+        correct_answer: '17',
+        marks: 10,
+        order_number: 2
+      },
+      {
+        exam_id: examData[0].id,
+        question_text: 'The area of a rectangle with length 8 units and width 5 units is _____ square units.',
+        question_type: 'fill_blank',
+        correct_answer: '40',
+        marks: 10,
+        order_number: 3
+      },
+      {
+        exam_id: examData[0].id,
+        question_text: 'Explain the Pythagorean theorem and provide an example of its application.',
+        question_type: 'short_answer',
+        correct_answer: 'The Pythagorean theorem states that in a right triangle, the square of the hypotenuse equals the sum of squares of the other two sides (a² + b² = c²).',
+        marks: 10,
+        order_number: 4
       }
+    ];
+
+    // Physics questions
+    const physicsQuestions = [
+      {
+        exam_id: examData[1].id,
+        question_text: 'What is the unit of force in the SI system?',
+        question_type: 'multiple_choice',
+        options: JSON.stringify(['Joule', 'Newton', 'Watt', 'Pascal']),
+        correct_answer: 'Newton',
+        marks: 8,
+        order_number: 1
+      },
+      {
+        exam_id: examData[1].id,
+        question_text: 'Which of the following are forms of energy? (Select all that apply)',
+        question_type: 'multiple_choice',
+        options: JSON.stringify(['Kinetic', 'Potential', 'Thermal', 'Chemical']),
+        correct_answer: JSON.stringify(['Kinetic', 'Potential', 'Thermal', 'Chemical']),
+        marks: 12,
+        order_number: 2
+      },
+      {
+        exam_id: examData[1].id,
+        question_text: 'The acceleration due to gravity on Earth is approximately _____ m/s².',
+        question_type: 'fill_blank',
+        correct_answer: '9.8',
+        marks: 7,
+        order_number: 3
+      },
+      {
+        exam_id: examData[1].id,
+        question_text: 'Describe Newton\'s first law of motion and provide a real-world example.',
+        question_type: 'short_answer',
+        correct_answer: 'Newton\'s first law states that an object at rest stays at rest and an object in motion stays in motion unless acted upon by an external force.',
+        marks: 8,
+        order_number: 4
+      }
+    ];
+
+    // English questions
+    const englishQuestions = [
+      {
+        exam_id: examData[2].id,
+        question_text: 'Which sentence is grammatically correct?',
+        question_type: 'multiple_choice',
+        options: JSON.stringify([
+          'She don\'t like coffee.',
+          'She doesn\'t likes coffee.',
+          'She doesn\'t like coffee.',
+          'She not like coffee.'
+        ]),
+        correct_answer: 'She doesn\'t like coffee.',
+        marks: 8,
+        order_number: 1
+      },
+      {
+        exam_id: examData[2].id,
+        question_text: 'What is the synonym of "enormous"?',
+        question_type: 'multiple_choice',
+        options: JSON.stringify(['Tiny', 'Huge', 'Medium', 'Small']),
+        correct_answer: 'Huge',
+        marks: 7,
+        order_number: 2
+      },
+      {
+        exam_id: examData[2].id,
+        question_text: 'The past tense of "write" is _____.',
+        question_type: 'fill_blank',
+        correct_answer: 'wrote',
+        marks: 7,
+        order_number: 3
+      },
+      {
+        exam_id: examData[2].id,
+        question_text: 'Write a brief paragraph (3-4 sentences) about your favorite hobby.',
+        question_type: 'short_answer',
+        correct_answer: 'Sample answer about a hobby with proper grammar and sentence structure.',
+        marks: 8,
+        order_number: 4
+      }
+    ];
+
+    allQuestions.push(...mathQuestions, ...physicsQuestions, ...englishQuestions);
+
+    // Insert all questions
+    const { error: questionsError } = await supabase
+      .from('questions')
+      .insert(allQuestions);
+
+    if (questionsError) {
+      console.error('Error creating questions:', questionsError);
+      throw questionsError;
     }
 
+    console.log('Successfully created sample exams with questions');
     return examData;
   } catch (error) {
     console.error('Error in createSampleExams:', error);
-    throw error;
-  }
-};
-
-const createSampleSubjects = async () => {
-  const subjects = [
-    { name: 'Mathematics', description: 'Math and algebra courses' },
-    { name: 'Physics', description: 'Physics and mechanics' },
-    { name: 'Chemistry', description: 'Chemistry and lab work' },
-    { name: 'English', description: 'Literature and writing' }
-  ];
-
-  // Check if subjects already exist
-  const { data: existingSubjects } = await supabase
-    .from('subjects')
-    .select('*')
-    .in('name', subjects.map(s => s.name));
-
-  const subjectsToCreate = subjects.filter(
-    subject => !existingSubjects?.some(existing => existing.name === subject.name)
-  );
-
-  if (subjectsToCreate.length > 0) {
-    const { data: newSubjects, error } = await supabase
-      .from('subjects')
-      .insert(subjectsToCreate)
-      .select();
-
-    if (error) {
-      console.error('Error creating subjects:', error);
-      throw error;
-    }
-
-    return [...(existingSubjects || []), ...(newSubjects || [])];
-  }
-
-  return existingSubjects || [];
-};
-
-const createSampleQuestions = async (examId: string) => {
-  const questions = [
-    {
-      exam_id: examId,
-      question_text: 'What is 2 + 2?',
-      question_type: 'single-choice',
-      options: ['2', '3', '4', '5'],
-      correct_answer: '4',
-      marks: 10,
-      order_number: 1
-    },
-    {
-      exam_id: examId,
-      question_text: 'Which of the following are prime numbers? (Select all that apply)',
-      question_type: 'multiple-choice',
-      options: ['2', '3', '4', '5', '6', '7'],
-      correct_answer: '2,3,5,7',
-      marks: 15,
-      order_number: 2
-    },
-    {
-      exam_id: examId,
-      question_text: 'The speed of light in vacuum is _______ m/s.',
-      question_type: 'fill-blank',
-      options: null,
-      correct_answer: '299792458',
-      marks: 20,
-      order_number: 3
-    }
-  ];
-
-  const { error } = await supabase
-    .from('questions')
-    .insert(questions);
-
-  if (error) {
-    console.error('Error creating questions:', error);
     throw error;
   }
 };
