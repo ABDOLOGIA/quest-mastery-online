@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription } from '../ui/alert';
 import { GraduationCap, Mail, CheckCircle, ArrowLeft } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 
 interface ForgotPasswordProps {
   onBackToLogin: () => void;
@@ -28,11 +29,26 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBackToLogin }) => {
       return;
     }
 
-    // Simulate sending password reset email
-    setTimeout(() => {
-      setIsEmailSent(true);
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl
+      });
+
+      if (error) {
+        console.error('Password reset error:', error);
+        setError(error.message);
+      } else {
+        console.log('Password reset email sent successfully');
+        setIsEmailSent(true);
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
 
   if (isEmailSent) {
@@ -41,9 +57,12 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBackToLogin }) => {
         <Card className="w-full max-w-md shadow-2xl bg-white bg-opacity-95 backdrop-blur-lg">
           <CardContent className="p-8 text-center">
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Email Sent!</h3>
+            <h3 className="text-xl font-semibold mb-2">Reset Link Sent!</h3>
             <p className="text-gray-600 mb-6">
               We've sent a password reset link to {email}. Please check your email and follow the instructions to reset your password.
+            </p>
+            <p className="text-sm text-gray-500 mb-6">
+              The link will expire in 1 hour for security reasons.
             </p>
             <Button onClick={onBackToLogin} className="w-full">
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -86,6 +105,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBackToLogin }) => {
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
                     disabled={isLoading}
+                    required
                   />
                 </div>
                 <p className="text-sm text-gray-600">
@@ -112,6 +132,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBackToLogin }) => {
                 variant="outline" 
                 className="w-full"
                 onClick={onBackToLogin}
+                disabled={isLoading}
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Login
