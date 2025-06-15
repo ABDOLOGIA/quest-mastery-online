@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useExam } from '../../contexts/ExamContext';
 import { Card, CardContent } from '../ui/card';
@@ -192,6 +191,10 @@ const ExamInterface: React.FC = () => {
                 Your answers have been auto-saved and submitted.
               </p>
             </div>
+            <Button onClick={handleReturnHome} className="w-full mt-4">
+              <Home className="w-4 h-4 mr-2" />
+              Back to Home
+            </Button>
           </CardContent>
         </Card>
       </div>

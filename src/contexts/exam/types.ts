@@ -3,6 +3,7 @@ import { Exam, ExamAttempt, StudentExam, DashboardStats, Warning } from '../../t
 
 export interface ExamContextType {
   exams: Exam[];
+  setExams: (exams: Exam[]) => void;
   attempts: ExamAttempt[];
   studentExams: StudentExam[];
   submittedExams: string[];
