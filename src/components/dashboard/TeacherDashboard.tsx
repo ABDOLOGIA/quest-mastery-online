@@ -5,7 +5,7 @@ import { useExam } from '../../contexts/ExamContext';
 import { Card, CardContent } from '../ui/card';
 import { useToast } from '../ui/use-toast';
 import { canManageExams } from '../../utils/roleHelpers';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, BookOpen } from 'lucide-react';
 import TeacherDashboardHeader from './teacher/TeacherDashboardHeader';
 import TeacherDashboardTabs from './teacher/TeacherDashboardTabs';
 import { useTeacherStats } from '../../hooks/useTeacherStats';
@@ -32,9 +32,16 @@ const TeacherDashboard: React.FC = () => {
       <div className="flex items-center justify-center min-h-screen">
         <Card className="w-full max-w-md">
           <CardContent className="p-8 text-center">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Access Denied</h3>
-            <p className="text-gray-600">You don't have permission to access the teacher dashboard. Only teachers and admins can access this area.</p>
+            <div className="flex justify-center mb-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                <BookOpen className="w-6 h-6 text-blue-500" />
+              </div>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Teacher Access Required</h3>
+            <p className="text-gray-600">You need a teacher account to access this dashboard. Teachers can create and manage exams immediately.</p>
+            <p className="text-sm text-gray-500 mt-2">
+              Current role: <span className="font-medium">{user?.role || 'Not logged in'}</span>
+            </p>
           </CardContent>
         </Card>
       </div>

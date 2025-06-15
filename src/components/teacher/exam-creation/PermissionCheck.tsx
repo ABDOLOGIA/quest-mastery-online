@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent } from '../../ui/card';
-import { AlertCircle, Shield } from 'lucide-react';
+import { AlertCircle, BookOpen } from 'lucide-react';
 import { User } from '../../../types/auth';
 import { hasTeacherPermissions } from '../../../utils/roleHelpers';
 
@@ -16,13 +16,13 @@ const PermissionCheck: React.FC<PermissionCheckProps> = ({ user, children }) => 
       <Card className="w-full max-w-4xl mx-auto">
         <CardContent className="p-8 text-center">
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-              <Shield className="w-8 h-8 text-red-500" />
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+              <BookOpen className="w-8 h-8 text-blue-500" />
             </div>
           </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-3">Teacher Access Required</h3>
+          <h3 className="text-xl font-semibold text-gray-900 mb-3">Teacher Account Required</h3>
           <p className="text-gray-600 mb-4">
-            You need teacher privileges to create and manage exams. Only teachers and admins can access this feature.
+            You need a teacher account to create and manage exams. Teachers can create exams immediately without approval.
           </p>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
             <div className="flex items-start space-x-3">

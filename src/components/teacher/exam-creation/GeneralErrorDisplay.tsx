@@ -16,24 +16,30 @@ const GeneralErrorDisplay: React.FC<GeneralErrorDisplayProps> = ({
 }) => {
   if (!error) return null;
 
+  const isPermissionError = error.includes('Teacher account required') || error.includes('Permission denied');
+
   return (
     <div className="bg-red-50 border border-red-200 rounded-lg p-4">
       <div className="flex items-start">
         <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 mr-3" />
         <div className="flex-1">
-          <h4 className="text-red-800 font-medium">Creation Failed</h4>
+          <h4 className="text-red-800 font-medium">
+            {isPermissionError ? "Teacher Account Required" : "Creation Failed"}
+          </h4>
           <p className="text-red-700 mt-1">{error}</p>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onRetry}
-            disabled={isSubmitting}
-            className="mt-3 border-red-300 text-red-700 hover:bg-red-50"
-          >
-            <Loader2 className={`w-4 h-4 mr-2 ${isSubmitting ? 'animate-spin' : ''}`} />
-            Retry Submission
-          </Button>
+          {!isPermissionError && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onRetry}
+              disabled={isSubmitting}
+              className="mt-3 border-red-300 text-red-700 hover:bg-red-50"
+            >
+              <Loader2 className={`w-4 h-4 mr-2 ${isSubmitting ? 'animate-spin' : ''}`} />
+              Retry Submission
+            </Button>
+          )}
         </div>
       </div>
     </div>

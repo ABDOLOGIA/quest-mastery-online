@@ -80,7 +80,7 @@ export type Database = {
       exams: {
         Row: {
           created_at: string
-          creator_id: string | null
+          creator_id: string
           description: string | null
           duration_minutes: number
           end_time: string | null
@@ -97,7 +97,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          creator_id?: string | null
+          creator_id: string
           description?: string | null
           duration_minutes?: number
           end_time?: string | null
@@ -114,7 +114,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          creator_id?: string | null
+          creator_id?: string
           description?: string | null
           duration_minutes?: number
           end_time?: string | null
