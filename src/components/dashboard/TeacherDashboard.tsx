@@ -7,6 +7,7 @@ import { Card, CardContent } from '../ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import QuestionManagement from '../teacher/QuestionManagement';
 import ExamCreationForm from '../teacher/ExamCreationForm';
+import SampleExamCreator from '../teacher/SampleExamCreator';
 import { useToast } from '../ui/use-toast';
 import { canCreateContent, canManageExams } from '../../utils/roleHelpers';
 import { AlertCircle } from 'lucide-react';
@@ -15,7 +16,7 @@ import TeacherDashboardStats from './TeacherDashboardStats';
 import TeacherQuickActions from './teacher/TeacherQuickActions';
 import TeacherExamsList from './teacher/TeacherExamsList';
 import TeacherStudentsList from './teacher/TeacherStudentsList';
-import TeacherResultsSection from './teacher/TeacherResultsSection';
+import TeacherResultsSection from './TeacherResultsSection';
 
 interface TeacherStats {
   studentCount: number;
@@ -168,6 +169,7 @@ const TeacherDashboard: React.FC = () => {
         <TabsContent value="overview" className="space-y-6">
           <TeacherDashboardStats />
           <TeacherQuickActions user={user} onSetActiveTab={setActiveTab} />
+          <SampleExamCreator />
         </TabsContent>
 
         <TabsContent value="questions">

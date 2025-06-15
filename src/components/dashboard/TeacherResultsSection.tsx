@@ -111,20 +111,12 @@ const TeacherResultsSection: React.FC = () => {
         score: result.score || 0,
         completed_at: result.completed_at,
         is_completed: result.is_completed,
-        student: Array.isArray(result.student) && result.student.length > 0 
+        student: result.student && typeof result.student === 'object' && result.student !== null && 'name' in result.student
           ? {
-              name: result.student[0].name || 'Unknown',
-              email: result.student[0].email || 'Unknown'
+              name: (result.student as any).name || 'Unknown',
+              email: (result.student as any).email || 'Unknown'
             }
-          : result.student && typeof result.student === 'object' && 'name' in result.student
-          ? {
-              name: result.student.name || 'Unknown',
-              email: result.student.email || 'Unknown'
-            }
-          : {
-              name: 'Unknown',
-              email: 'Unknown'
-            }
+          : null
       }));
 
       setResults(transformedResults);
