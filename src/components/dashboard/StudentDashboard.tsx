@@ -5,6 +5,7 @@ import { useExam } from '../../contexts/ExamContext';
 import AvailableExams from './AvailableExams';
 import ExamResults from './ExamResults';
 import SampleExamsGenerator from '../student/SampleExamsGenerator';
+import HeroCarousel from '../home/HeroCarousel';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { BookOpen, Clock, Trophy } from 'lucide-react';
 
@@ -77,6 +78,9 @@ const StudentDashboard = () => {
 
       {/* Exam Results Section */}
       <ExamResults />
+
+      {/* Hero Carousel Section */}
+      <HeroCarousel />
     </div>
   );
 };
