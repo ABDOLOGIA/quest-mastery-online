@@ -88,20 +88,22 @@ const SuccessStoriesCarousel: React.FC<SuccessStoriesCarouselProps> = ({ onSwitc
                   <img
                     src={story.image}
                     alt={story.title}
-                    className="w-full h-full object-cover"
+                    className={`w-full h-full ${
+                      index === 4 ? 'object-contain bg-black' : 'object-cover'
+                    }`}
                     onError={(e) => {
                       e.currentTarget.src = 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=500&h=300&fit=crop';
                     }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/20 to-black/70"></div>
                 </div>
-                <div className="p-8 flex flex-col justify-center bg-gradient-to-br from-black/80 to-black/90">
-                  <h3 className="text-2xl font-bold text-yellow-400 mb-4 drop-shadow-lg">{story.title}</h3>
-                  <p className="text-gray-100 mb-6 leading-relaxed text-lg font-medium drop-shadow-md">{story.description}</p>
-                  <blockquote className="text-yellow-300 italic text-lg border-l-4 border-yellow-500 pl-4 bg-black/40 p-4 rounded-r-lg backdrop-blur-sm">
-                    <span className="text-2xl font-bold text-yellow-400">"</span>
+                <div className="p-6 md:p-8 flex flex-col justify-center bg-gradient-to-br from-black/90 to-black/95 text-center md:text-left">
+                  <h3 className="text-xl md:text-2xl font-bold text-yellow-400 mb-3 md:mb-4 drop-shadow-lg">{story.title}</h3>
+                  <p className="text-gray-100 mb-4 md:mb-6 leading-relaxed text-base md:text-lg font-medium drop-shadow-md">{story.description}</p>
+                  <blockquote className="text-yellow-300 italic text-base md:text-lg border-l-4 border-yellow-500 pl-4 bg-black/60 p-3 md:p-4 rounded-r-lg backdrop-blur-sm">
+                    <span className="text-xl md:text-2xl font-bold text-yellow-400">"</span>
                     <span className="font-semibold">{story.quote.slice(1, -1)}</span>
-                    <span className="text-2xl font-bold text-yellow-400">"</span>
+                    <span className="text-xl md:text-2xl font-bold text-yellow-400">"</span>
                   </blockquote>
                 </div>
               </div>
