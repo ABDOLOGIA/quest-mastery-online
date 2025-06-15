@@ -18,7 +18,7 @@ interface ExamResult {
   student: {
     name: string;
     email: string;
-  };
+  } | null;
 }
 
 const TeacherResultsSection: React.FC = () => {
@@ -90,7 +90,7 @@ const TeacherResultsSection: React.FC = () => {
         .from('exam_results')
         .select(`
           *,
-          student:profiles!inner(name, email)
+          student:profiles(name, email)
         `)
         .eq('exam_id', examId);
 
@@ -104,7 +104,30 @@ const TeacherResultsSection: React.FC = () => {
         return;
       }
 
-      setResults(data || []);
+      // Transform the data to match our interface
+      const transformedResults: ExamResult[] = (data || []).map(result => ({
+        id: result.id,
+        student_id: result.student_id,
+        score: result.score || 0,
+        completed_at: result.completed_at,
+        is_completed: result.is_completed,
+        student: Array.isArray(result.student) && result.student.length > 0 
+          ? {
+              name: result.student[0].name || 'Unknown',
+              email: result.student[0].email || 'Unknown'
+            }
+          : result.student && typeof result.student === 'object' && 'name' in result.student
+          ? {
+              name: result.student.name || 'Unknown',
+              email: result.student.email || 'Unknown'
+            }
+          : {
+              name: 'Unknown',
+              email: 'Unknown'
+            }
+      }));
+
+      setResults(transformedResults);
     } catch (error) {
       console.error('Error loading results:', error);
       toast({
