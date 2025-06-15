@@ -12,6 +12,7 @@ const StudentsList = () => {
   const { allStudents, isLoading, loadAllStudents } = useExam();
 
   const handleRefresh = async () => {
+    console.log('Refreshing students list...');
     await loadAllStudents();
   };
 
@@ -21,7 +22,7 @@ const StudentsList = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            My Students
+            All Students
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -48,7 +49,7 @@ const StudentsList = () => {
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            My Students ({allStudents.length})
+            All Students ({allStudents.length})
           </div>
           <Button 
             variant="outline" 
@@ -66,7 +67,7 @@ const StudentsList = () => {
           <div className="text-center py-8 text-gray-500">
             <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>No students found in the system.</p>
-            <p className="text-sm text-gray-400 mt-1">Students will appear here when they register.</p>
+            <p className="text-sm text-gray-400 mt-1">Students will appear here when they register with a student role.</p>
             <Button 
               variant="outline" 
               className="mt-4" 

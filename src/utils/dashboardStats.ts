@@ -45,6 +45,8 @@ export const loadAllStudentsFromDatabase = async (user: any): Promise<any[]> => 
   if (!user) return [];
 
   try {
+    console.log('Loading students from database for user role:', user.role);
+    
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -56,7 +58,7 @@ export const loadAllStudentsFromDatabase = async (user: any): Promise<any[]> => 
       return [];
     }
 
-    console.log('Loaded students:', data);
+    console.log('Students loaded from database:', data?.length || 0);
     return data || [];
   } catch (error) {
     console.error('Error in loadAllStudentsFromDatabase:', error);

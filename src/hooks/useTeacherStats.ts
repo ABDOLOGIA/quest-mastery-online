@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useExam } from '../contexts/ExamContext';
 import { supabase } from '../lib/supabase';
 import { canManageExams } from '../utils/roleHelpers';
+import { getAllStudentsFromDatabase } from '../utils/exam/studentLoader';
 
 interface TeacherStats {
   studentCount: number;
@@ -14,7 +15,7 @@ interface TeacherStats {
 
 export const useTeacherStats = () => {
   const { user } = useAuth();
-  const { exams, getAllStudents } = useExam();
+  const { exams } = useExam();
   const [stats, setStats] = useState<TeacherStats>({
     studentCount: 0,
     pendingGrading: 0,
@@ -35,7 +36,10 @@ export const useTeacherStats = () => {
 
   const loadAllStudents = async () => {
     try {
-      const students = await getAllStudents();
+      console.log('Loading all students...');
+      const students = await getAllStudentsFromDatabase();
+      console.log('Students loaded:', students.length);
+      
       setAllStudents(students);
       setStats(prev => ({
         ...prev,
@@ -43,6 +47,11 @@ export const useTeacherStats = () => {
       }));
     } catch (error) {
       console.error('Error loading students:', error);
+      setAllStudents([]);
+      setStats(prev => ({
+        ...prev,
+        studentCount: 0
+      }));
     }
   };
 
