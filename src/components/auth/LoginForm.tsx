@@ -104,7 +104,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
   };
 
   const handleResendConfirmation = async () => {
-    // For resending confirmation, we need an email address
     let email = emailOrStudentId;
     
     if (!emailOrStudentId.includes('@')) {
@@ -449,14 +448,14 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
         </div>
       </div>
 
-      {/* Success Stories Carousel */}
+      {/* Success Stories Carousel with improved text contrast */}
       <div className="w-full max-w-6xl mt-16 relative z-10">
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-yellow-400 mb-4">Success Stories</h2>
           <p className="text-gray-200 text-lg">Discover how students achieve excellence through dedication and smart studying</p>
         </div>
 
-        <div className="relative bg-black/60 backdrop-blur-lg border border-yellow-500/20 rounded-2xl overflow-hidden shadow-2xl">
+        <div className="relative bg-black/70 backdrop-blur-lg border border-yellow-500/20 rounded-2xl overflow-hidden shadow-2xl">
           <div className="relative h-96 md:h-80">
             {successStories.map((story, index) => (
               <div
@@ -475,13 +474,15 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
                         e.currentTarget.src = 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=500&h=300&fit=crop';
                       }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/50"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/20 to-black/70"></div>
                   </div>
-                  <div className="p-8 flex flex-col justify-center">
-                    <h3 className="text-2xl font-bold text-yellow-400 mb-4">{story.title}</h3>
-                    <p className="text-gray-200 mb-6 leading-relaxed">{story.description}</p>
-                    <blockquote className="text-yellow-300 italic text-lg border-l-4 border-yellow-500 pl-4">
-                      {story.quote}
+                  <div className="p-8 flex flex-col justify-center bg-gradient-to-br from-black/80 to-black/90">
+                    <h3 className="text-2xl font-bold text-yellow-400 mb-4 drop-shadow-lg">{story.title}</h3>
+                    <p className="text-gray-100 mb-6 leading-relaxed text-lg font-medium drop-shadow-md">{story.description}</p>
+                    <blockquote className="text-yellow-300 italic text-lg border-l-4 border-yellow-500 pl-4 bg-black/40 p-4 rounded-r-lg backdrop-blur-sm">
+                      <span className="text-2xl font-bold text-yellow-400">"</span>
+                      <span className="font-semibold">{story.quote.slice(1, -1)}</span>
+                      <span className="text-2xl font-bold text-yellow-400">"</span>
                     </blockquote>
                   </div>
                 </div>
@@ -489,21 +490,19 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
             ))}
           </div>
 
-          {/* Navigation buttons */}
           <button
             onClick={prevSlide}
-            className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-yellow-500/20 hover:bg-yellow-500/40 border border-yellow-500/30 rounded-full flex items-center justify-center text-yellow-400 transition-all duration-300"
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-yellow-500/30 hover:bg-yellow-500/50 border border-yellow-500/50 rounded-full flex items-center justify-center text-yellow-400 transition-all duration-300 backdrop-blur-sm"
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
           <button
             onClick={nextSlide}
-            className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-yellow-500/20 hover:bg-yellow-500/40 border border-yellow-500/30 rounded-full flex items-center justify-center text-yellow-400 transition-all duration-300"
+            className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-yellow-500/30 hover:bg-yellow-500/50 border border-yellow-500/50 rounded-full flex items-center justify-center text-yellow-400 transition-all duration-300 backdrop-blur-sm"
           >
             <ChevronRight className="w-6 h-6" />
           </button>
 
-          {/* Slide indicators */}
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
             {successStories.map((_, index) => (
               <button
@@ -519,7 +518,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
           </div>
         </div>
 
-        {/* Call to Action */}
         <div className="text-center mt-12">
           <div className="inline-flex flex-col items-center gap-4">
             <h3 className="text-2xl font-bold text-yellow-400">Ready to Start Your Success Journey?</h3>
