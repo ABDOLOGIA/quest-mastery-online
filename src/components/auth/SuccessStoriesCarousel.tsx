@@ -83,30 +83,54 @@ const SuccessStoriesCarousel: React.FC<SuccessStoriesCarouselProps> = ({ onSwitc
                 index === currentSlide ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full'
               }`}
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 h-full">
-                <div className="relative">
-                  <img
-                    src={story.image}
-                    alt={story.title}
-                    className={`w-full h-full ${
-                      index === 4 ? 'object-contain bg-black' : 'object-cover'
-                    }`}
-                    onError={(e) => {
-                      e.currentTarget.src = 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=500&h=300&fit=crop';
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/20 to-black/70"></div>
+              {index === 4 ? (
+                // Special layout for the last slide to show both face and text clearly
+                <div className="h-full flex flex-col">
+                  <div className="relative h-2/3">
+                    <img
+                      src={story.image}
+                      alt={story.title}
+                      className="w-full h-full object-contain bg-gradient-to-b from-black to-gray-900"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=500&h=300&fit=crop';
+                      }}
+                    />
+                  </div>
+                  <div className="h-1/3 p-4 bg-gradient-to-br from-black/95 to-black text-center flex flex-col justify-center">
+                    <h3 className="text-lg md:text-xl font-bold text-yellow-400 mb-2">{story.title}</h3>
+                    <p className="text-gray-100 mb-2 text-sm md:text-base font-medium">{story.description}</p>
+                    <blockquote className="text-yellow-300 italic text-sm md:text-base">
+                      <span className="text-lg font-bold text-yellow-400">"</span>
+                      <span className="font-semibold">{story.quote.slice(1, -1)}</span>
+                      <span className="text-lg font-bold text-yellow-400">"</span>
+                    </blockquote>
+                  </div>
                 </div>
-                <div className="p-6 md:p-8 flex flex-col justify-center bg-gradient-to-br from-black/90 to-black/95 text-center md:text-left">
-                  <h3 className="text-xl md:text-2xl font-bold text-yellow-400 mb-3 md:mb-4 drop-shadow-lg">{story.title}</h3>
-                  <p className="text-gray-100 mb-4 md:mb-6 leading-relaxed text-base md:text-lg font-medium drop-shadow-md">{story.description}</p>
-                  <blockquote className="text-yellow-300 italic text-base md:text-lg border-l-4 border-yellow-500 pl-4 bg-black/60 p-3 md:p-4 rounded-r-lg backdrop-blur-sm">
-                    <span className="text-xl md:text-2xl font-bold text-yellow-400">"</span>
-                    <span className="font-semibold">{story.quote.slice(1, -1)}</span>
-                    <span className="text-xl md:text-2xl font-bold text-yellow-400">"</span>
-                  </blockquote>
+              ) : (
+                // Regular layout for other slides
+                <div className="grid grid-cols-1 md:grid-cols-2 h-full">
+                  <div className="relative">
+                    <img
+                      src={story.image}
+                      alt={story.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=500&h=300&fit=crop';
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/20 to-black/70"></div>
+                  </div>
+                  <div className="p-6 md:p-8 flex flex-col justify-center bg-gradient-to-br from-black/90 to-black/95 text-center md:text-left">
+                    <h3 className="text-xl md:text-2xl font-bold text-yellow-400 mb-3 md:mb-4 drop-shadow-lg">{story.title}</h3>
+                    <p className="text-gray-100 mb-4 md:mb-6 leading-relaxed text-base md:text-lg font-medium drop-shadow-md">{story.description}</p>
+                    <blockquote className="text-yellow-300 italic text-base md:text-lg border-l-4 border-yellow-500 pl-4 bg-black/60 p-3 md:p-4 rounded-r-lg backdrop-blur-sm">
+                      <span className="text-xl md:text-2xl font-bold text-yellow-400">"</span>
+                      <span className="font-semibold">{story.quote.slice(1, -1)}</span>
+                      <span className="text-xl md:text-2xl font-bold text-yellow-400">"</span>
+                    </blockquote>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           ))}
         </div>
