@@ -11,7 +11,8 @@ export const loadStudentExamsFromDatabase = async (user: any): Promise<StudentEx
       const { data, error } = await supabase
         .from('student_exams')
         .select('*')
-        .eq('student_id', user.id);
+        .eq('student_id', user.id)
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error loading student exams:', error);
@@ -23,13 +24,13 @@ export const loadStudentExamsFromDatabase = async (user: any): Promise<StudentEx
           id: se.id,
           studentId: se.student_id,
           examId: se.exam_id,
-          startedAt: new Date(se.started_at),
+          startedAt: new Date(se.started_at || se.created_at),
           submittedAt: se.submitted_at ? new Date(se.submitted_at) : undefined,
           answers: se.answers as Record<string, string | string[]>,
           score: se.score,
           isGraded: se.is_graded,
           isSubmitted: se.is_submitted,
-          timeSpent: se.time_spent
+          timeSpent: se.time_spent || 0
         }));
 
         return formattedStudentExams;
@@ -42,7 +43,8 @@ export const loadStudentExamsFromDatabase = async (user: any): Promise<StudentEx
           *,
           exams!inner(teacher_id)
         `)
-        .eq('exams.teacher_id', user.id);
+        .eq('exams.teacher_id', user.id)
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error loading student exams for teacher:', error);
@@ -54,13 +56,13 @@ export const loadStudentExamsFromDatabase = async (user: any): Promise<StudentEx
           id: se.id,
           studentId: se.student_id,
           examId: se.exam_id,
-          startedAt: new Date(se.started_at),
+          startedAt: new Date(se.started_at || se.created_at),
           submittedAt: se.submitted_at ? new Date(se.submitted_at) : undefined,
           answers: se.answers as Record<string, string | string[]>,
           score: se.score,
           isGraded: se.is_graded,
           isSubmitted: se.is_submitted,
-          timeSpent: se.time_spent
+          timeSpent: se.time_spent || 0
         }));
 
         return formattedStudentExams;

@@ -11,7 +11,7 @@ export const loadExamsFromDatabase = async (user: any): Promise<Exam[]> => {
     questions!fk_questions_exam(*)
   `);
 
-  // Students can only see published exams
+  // Students can only see published exams from any teacher
   if (user.role === 'student') {
     query = query.eq('is_published', true);
   }

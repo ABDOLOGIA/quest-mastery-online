@@ -5,48 +5,65 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { useExam } from '../../contexts/ExamContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { BookOpen, Clock, Users, Play } from 'lucide-react';
+import { BookOpen, Clock, Users, Play, CalendarClock, Timer } from 'lucide-react';
 
 const AvailableExams = () => {
   const { exams, submittedExams, startExam, isLoading } = useExam();
   const { user } = useAuth();
 
-  // Filter exams that are available to the student
-  const availableExams = exams.filter(exam => {
-    if (!exam.isActive) return false;
-    if (submittedExams.includes(exam.id)) return false;
-    
-    // Check if exam is within time window (if scheduled)
-    if (!exam.alwaysAvailable) {
-      const now = new Date();
-      if (exam.startTime > now || exam.endTime < now) return false;
-    }
-    
-    return true;
-  });
-
-  const handleStartExam = (examId: string) => {
-    if (!user) return;
-    startExam(examId, user.id);
-  };
-
   const getExamStatus = (exam: any) => {
     const now = new Date();
     
     if (submittedExams.includes(exam.id)) {
-      return { status: 'completed', color: 'bg-green-100 text-green-800' };
+      return { 
+        status: 'completed', 
+        color: 'bg-green-100 text-green-800',
+        canStart: false,
+        label: 'Completed'
+      };
     }
     
-    if (!exam.alwaysAvailable) {
-      if (exam.startTime > now) {
-        return { status: 'upcoming', color: 'bg-blue-100 text-blue-800' };
-      }
-      if (exam.endTime < now) {
-        return { status: 'expired', color: 'bg-gray-100 text-gray-800' };
-      }
+    if (exam.alwaysAvailable) {
+      return { 
+        status: 'available', 
+        color: 'bg-green-100 text-green-800',
+        canStart: true,
+        label: 'Available Now'
+      };
     }
     
-    return { status: 'available', color: 'bg-green-100 text-green-800' };
+    if (exam.startTime > now) {
+      return { 
+        status: 'upcoming', 
+        color: 'bg-blue-100 text-blue-800',
+        canStart: false,
+        label: `Starts ${exam.startTime.toLocaleDateString()} at ${exam.startTime.toLocaleTimeString()}`
+      };
+    }
+    
+    if (exam.endTime < now) {
+      return { 
+        status: 'expired', 
+        color: 'bg-gray-100 text-gray-800',
+        canStart: false,
+        label: 'Expired'
+      };
+    }
+    
+    return { 
+      status: 'available', 
+      color: 'bg-green-100 text-green-800',
+      canStart: true,
+      label: `Available until ${exam.endTime.toLocaleDateString()}`
+    };
+  };
+
+  // Filter exams that should be visible to students
+  const visibleExams = exams.filter(exam => exam.isActive);
+
+  const handleStartExam = (examId: string) => {
+    if (!user) return;
+    startExam(examId, user.id);
   };
 
   if (isLoading) {
@@ -84,11 +101,11 @@ const AvailableExams = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <BookOpen className="h-5 w-5" />
-          Available Exams ({availableExams.length})
+          Available Exams ({visibleExams.length})
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {availableExams.length === 0 ? (
+        {visibleExams.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>No exams available at the moment.</p>
@@ -96,17 +113,32 @@ const AvailableExams = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {availableExams.map((exam) => {
+            {visibleExams.map((exam) => {
               const status = getExamStatus(exam);
               return (
                 <div key={exam.id} className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                   <div className="flex justify-between items-start mb-3">
-                    <div>
+                    <div className="flex-1">
                       <h3 className="font-semibold text-gray-900 mb-1">{exam.title}</h3>
                       <p className="text-sm text-gray-600 mb-2">{exam.description}</p>
-                      <Badge className={status.color}>{status.status}</Badge>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge className={status.color}>{status.status}</Badge>
+                        <Badge variant="outline">{exam.subject}</Badge>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-gray-500">
+                        {exam.alwaysAvailable ? (
+                          <div className="flex items-center gap-1">
+                            <Timer className="h-3 w-3" />
+                            <span>Always Available</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <CalendarClock className="h-3 w-3" />
+                            <span>{status.label}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <Badge variant="outline">{exam.subject}</Badge>
                   </div>
                   
                   <div className="flex items-center justify-between">
@@ -119,18 +151,16 @@ const AvailableExams = () => {
                         <Users className="h-4 w-4" />
                         {exam.totalPoints} pts
                       </div>
-                      {!exam.alwaysAvailable && (
-                        <span>Due: {exam.endTime.toLocaleDateString()}</span>
-                      )}
                     </div>
                     
                     <Button 
                       onClick={() => handleStartExam(exam.id)}
                       className="flex items-center gap-2"
-                      disabled={status.status !== 'available'}
+                      disabled={!status.canStart}
+                      variant={status.canStart ? "default" : "secondary"}
                     >
                       <Play className="h-4 w-4" />
-                      Start Exam
+                      {status.canStart ? 'Start Exam' : status.status === 'completed' ? 'Completed' : 'Not Available'}
                     </Button>
                   </div>
                 </div>

@@ -8,6 +8,8 @@ export const submitExamToDatabase = async (
   user: any
 ): Promise<{ score: number; timeSpent: number }> => {
   let score = 0;
+  
+  // Calculate score based on correct answers
   currentExam.questions.forEach(question => {
     const userAnswer = currentAttempt.answers[question.id];
     if (userAnswer && userAnswer === question.correctAnswer) {
@@ -28,14 +30,15 @@ export const submitExamToDatabase = async (
       is_graded: true,
       is_submitted: true,
       time_spent: timeSpent,
-      submitted_at: new Date().toISOString()
+      submitted_at: new Date().toISOString(),
+      started_at: currentAttempt.startTime.toISOString()
     });
 
   if (studentExamError) {
     console.error('Error submitting to student_exams:', studentExamError);
   }
 
-  // Also insert into exam_results for compatibility
+  // Also insert into exam_results for compatibility with existing results display
   const { error } = await supabase
     .from('exam_results')
     .insert({
@@ -50,7 +53,7 @@ export const submitExamToDatabase = async (
     });
 
   if (error) {
-    console.error('Error submitting exam:', error);
+    console.error('Error submitting exam to exam_results:', error);
     throw error;
   }
 
