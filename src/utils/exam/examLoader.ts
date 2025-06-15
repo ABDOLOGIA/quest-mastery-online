@@ -43,7 +43,7 @@ export const loadExamsFromDatabase = async (user: any): Promise<Exam[]> => {
       allowReview: true,
       shuffleQuestions: false,
       createdBy: exam.teacher_id,
-      alwaysAvailable: !exam.start_time,
+      alwaysAvailable: !exam.start_time && !exam.end_time,
       questions: exam.questions?.map((q: any) => ({
         id: q.id,
         type: q.question_type as 'single-choice' | 'multiple-choice' | 'fill-blank' | 'short-answer',
