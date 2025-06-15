@@ -20,25 +20,51 @@ const SampleExamAdder: React.FC = () => {
     sampleExamTitles.includes(exam.title) && exam.createdBy === user?.id
   );
 
+  console.log('Current exams:', exams);
+  console.log('Existing sample exams:', existingSampleExams);
+  console.log('User ID:', user?.id);
+
   const handleAddSampleExams = async () => {
-    if (!user) return;
+    if (!user) {
+      console.error('No user found');
+      toast({
+        title: "Error",
+        description: "You must be logged in to create exams.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsAdding(true);
     try {
+      console.log('Creating sample exams for user:', user.id);
       const sampleExams = createSampleExams(user.id);
+      console.log('Sample exams to create:', sampleExams);
       
+      let createdCount = 0;
       for (const examData of sampleExams) {
         // Only add if it doesn't already exist
         const exists = existingSampleExams.some(existing => existing.title === examData.title);
         if (!exists) {
+          console.log('Creating exam:', examData.title);
           await createExam(examData);
+          createdCount++;
+        } else {
+          console.log('Exam already exists:', examData.title);
         }
       }
 
-      toast({
-        title: "Success!",
-        description: "Sample exams have been added successfully.",
-      });
+      if (createdCount > 0) {
+        toast({
+          title: "Success!",
+          description: `${createdCount} sample exam(s) have been added successfully.`,
+        });
+      } else {
+        toast({
+          title: "Info",
+          description: "All sample exams already exist.",
+        });
+      }
     } catch (error) {
       console.error('Error adding sample exams:', error);
       toast({
@@ -58,7 +84,10 @@ const SampleExamAdder: React.FC = () => {
           <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Sample Exams Already Added</h3>
           <p className="text-gray-600">
-            You have already added all sample exams (Mathematics, Physics, and English).
+            You have already added all sample exams ({existingSampleExams.length}/{sampleExamTitles.length}).
+          </p>
+          <p className="text-sm text-gray-500 mt-2">
+            {existingSampleExams.map(exam => exam.title).join(', ')}
           </p>
         </CardContent>
       </Card>
@@ -85,6 +114,9 @@ const SampleExamAdder: React.FC = () => {
         <p className="text-sm text-gray-500">
           All exams include anti-cheating measures and auto-save functionality.
         </p>
+        <div className="text-sm text-blue-600 bg-blue-50 p-3 rounded">
+          Current exams: {exams.length} | Sample exams found: {existingSampleExams.length}
+        </div>
         <Button
           onClick={handleAddSampleExams}
           disabled={isAdding}
