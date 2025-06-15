@@ -11,12 +11,36 @@ export const createSubjectWithErrorHandling = async (subjectName: string): Promi
   console.log('Creating subject with name:', subjectName);
   
   try {
+    // Get current user to set creator_id
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      throw new Error('You must be logged in to create subjects');
+    }
+
+    // Get user profile to verify role
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile) {
+      throw new Error('Unable to verify user permissions');
+    }
+
+    if (profile.role !== 'teacher') {
+      throw new Error('Teacher account required to create subjects');
+    }
+
+    console.log('User verified as teacher, creating subject');
+
     const { data: newSubject, error } = await supabase
       .from('subjects')
       .insert({ 
         name: subjectName.trim(),
         description: `Subject for ${subjectName.trim()}`,
-        created_by: (await supabase.auth.getUser()).data.user?.id
+        created_by: user.id
       })
       .select('id')
       .single();

@@ -4,14 +4,16 @@ import { Exam } from '../../types/exam';
 import { validateExamData } from './examValidation';
 import { getOrCreateSubject } from './subjectCreation';
 import { createQuestionsWithErrorHandling } from './questionCreation';
-import { verifyCreatePermissions, handleCreationError } from '../roleHelpers';
+import { handleCreationError } from '../roleHelpers';
 
 export const createExamInDatabase = async (examData: Omit<Exam, 'id'>, user: any): Promise<void> => {
-  // Verify user permissions first
-  verifyCreatePermissions(user);
-
   console.log('Creating exam with data:', examData);
   console.log('User creating exam:', { id: user.id, role: user.role });
+
+  // Verify user is a teacher
+  if (user.role !== 'teacher') {
+    throw new Error('Teacher account required to create exams');
+  }
 
   // Validate exam data
   const validationErrors = validateExamData(examData);
